@@ -3,4 +3,4 @@ set -xe
 
 spago build --config ./prod.dhall 
 purs-backend-es build
-esbuild --bundle ./index.mjs --platform=node > dist.js
+echo "import { main } from './output/Main/index.js'; main();" | esbuild --bundle --platform=node > dist.js

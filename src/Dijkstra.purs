@@ -2,7 +2,6 @@ module Dijkstra where
 
 import Prelude
 
-import Control.Monad.Rec.Class (Step(..), tailRec2)
 import Data.Array as Array
 import Data.Lazy (Lazy, defer, force)
 import Data.List (List, (:))
@@ -47,40 +46,36 @@ instance (Show pos, Eq pos) => Ord (Path pos) where
   compare (PathEnd _ _ cost1 _) (PathBranch _ _ cost2 _) = compare cost1 cost2
 
 findPaths :: forall world pos. Show pos => World world pos => Maybe (Lazy (Path pos)) -> Tuple pos Int -> world -> Maybe (Lazy (Path pos))
-findPaths previous (Tuple pos cost) world =
-  lookupCell pos world <#> f
+findPaths previous (Tuple pos cost) world = lookupCell pos world <#> this
   where
-  f cell = this
+  this cell = this
     where
     thisCost = cellCost cell
 
     this :: Lazy (Path pos)
-    this = defer \_ -> case cell of
-      Destination _ -> PathEnd previous pos cost thisCost
-      _ -> PathBranch previous pos cost $ next this
-      where
-      next :: Lazy (Path pos) -> Array (Lazy (Path pos))
-      next this = adjacentCells pos world
-        <#> (\p -> findPaths (Just this) (Tuple p (cost + thisCost)) world)
-        # Array.catMaybes
+    this =  defer \_ -> case cell of
+        Destination _ -> PathEnd previous pos cost thisCost
+        _ -> do
+          let next = adjacentCells pos world <#> (\p -> findPaths (Just this) (Tuple p (cost + thisCost)) world) # Array.catMaybes
+          PathBranch previous pos cost next
 
 type PathQueue pos = PQ.PriorityQueue (Path pos)
 
 type Visited pos = S.Set pos
 
-evaluateNextBranch :: forall pos. Show pos => Ord pos => PathQueue pos -> Visited pos -> Lazy (Maybe (Solution pos))
-evaluateNextBranch queue visited = tailRec2 go queue visited
+evaluateNextBranch :: forall pos. Show pos => Ord pos => PathQueue pos -> Visited pos -> Maybe (Solution pos)
+evaluateNextBranch = go
   where
-  go :: PathQueue pos -> Visited pos -> Step { a :: PathQueue pos, b :: Visited pos } (Lazy (Maybe (Solution pos)))
+  go :: PathQueue pos -> Visited pos -> Maybe (Solution pos)
   go queue visited = case PQ.viewMin queue of
-    Nothing -> Done $ defer \_ -> Nothing
-    Just (PathEnd p pos cost cellCost) -> Done $ defer \_ -> Just { path: List.reverse $ pos : maybe List.Nil buildPath (force <$> p), cost: cost + cellCost }
+    Nothing -> Nothing
+    Just (PathEnd p pos cost cellCost) -> Just { path: List.reverse $ pos : maybe List.Nil buildPath (force <$> p), cost: cost + cellCost }
     Just (path@(PathBranch _ pos _ next)) ->
       let
         remainingQueue = PQ.delete path queue
       in
-        if S.member pos visited then Loop { a: remainingQueue, b: visited }
-        else Loop { a: foldr PQ.insert remainingQueue (force <$> next), b: S.insert pos visited }
+        if S.member pos visited then go remainingQueue visited
+        else go (foldr PQ.insert remainingQueue (force <$> next)) (S.insert pos visited)
 
 buildPath :: forall pos. Path pos -> List pos
 buildPath (PathEnd previous pos _ _) = pos : maybe List.Nil buildPath (force <$> previous)
@@ -89,4 +84,4 @@ buildPath (PathBranch previous pos _ _) = pos : maybe List.Nil buildPath (force 
 findSolutionFrom :: forall pos world. Show pos => Ord pos => World world pos => world -> pos -> Maybe (Solution pos)
 findSolutionFrom world pos = do
   root <- findPaths Nothing (Tuple pos 0) world
-  force $ evaluateNextBranch (PQ.singleton $ force root) S.empty
+  evaluateNextBranch (PQ.singleton $ force root) S.empty
