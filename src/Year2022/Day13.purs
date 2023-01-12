@@ -28,49 +28,53 @@ instance Ord Element where
 
 parseElement :: List Char -> Either Error (Tuple Element (List Char))
 parseElement List.Nil = Left $ error "expected element got ''"
-parseElement input@(c:_) | isDecDigit $ codePointFromChar c = do
+parseElement input@(c : _) | isDecDigit $ codePointFromChar c = do
   n <- parseInt $ fromCharArray $ Array.fromFoldable $ List.takeWhile (codePointFromChar >>> isDecDigit) input
   Right $ Tuple (Number n) (List.dropWhile (codePointFromChar >>> isDecDigit) input)
-parseElement ('[':']':rest) = Right $ Tuple (List List.Nil) rest
-parseElement ('[':rest) = do
+parseElement ('[' : ']' : rest) = Right $ Tuple (List List.Nil) rest
+parseElement ('[' : rest) = do
   Tuple elems rest <- mapFst List.reverse <$> run List.Nil rest
   case rest of
-    ']':rest -> Right $ Tuple (List elems) rest
+    ']' : rest -> Right $ Tuple (List elems) rest
     rest -> Left $ error $ "expected ] got '" <> fromCharArray (Array.fromFoldable rest) <> "'"
   where
   run :: List Element -> List Char -> Either Error (Tuple (List Element) (List Char))
   run previous rest = do
     Tuple el rest <- parseElement rest
     case rest of
-      ',':rest -> run (el:previous) rest
-      rest -> Right $ Tuple (el:previous) rest
+      ',' : rest -> run (el : previous) rest
+      rest -> Right $ Tuple (el : previous) rest
 parseElement input = Left $ error $ "unexpected input: '" <> fromCharArray (Array.fromFoldable input) <> "'"
 
 pairs :: forall a. List a -> List (Tuple a a)
 pairs list = chunks 2 list >>= case _ of
-  (a:b:List.Nil) -> List.singleton $ Tuple a b
+  (a : b : List.Nil) -> List.singleton $ Tuple a b
   _ -> List.Nil
 
 parse :: String -> Either Error (Array Element)
-parse input = lines input <#> String.trim 
-  # Array.filter (not <<< String.null) <#> toCharArray >>> List.fromFoldable
+parse input = lines input <#> String.trim
+  # Array.filter (not <<< String.null)
+  <#> toCharArray >>> List.fromFoldable
   # traverse (map fst <<< parseElement)
 
 solvePartOne :: List Element -> Int
 solvePartOne elements = pairs elements <#> (\(Tuple a b) -> a < b)
-  # indexed <#> (mapFst $ add 1)
-  # List.filter snd <#> fst
+  # indexed
+  <#> (mapFst $ add 1)
+  # List.filter snd
+  <#> fst
   # sum
 
 dividers :: Array Element
-dividers = 
+dividers =
   [ List $ List.singleton $ List $ List.singleton $ Number 2
-  , List $ List.singleton $ List $ List.singleton $ Number 6 
+  , List $ List.singleton $ List $ List.singleton $ Number 6
   ]
 
 solvePartTwo :: Array Element -> Int
 solvePartTwo elements = dividers <#> (\d -> Array.findIndex (eq d) sorted)
-  # Array.catMaybes <#> add 1
+  # Array.catMaybes
+  <#> add 1
   # product
   where
   sorted = Array.sort (elements <> dividers)
