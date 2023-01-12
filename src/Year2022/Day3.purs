@@ -20,8 +20,9 @@ import Effect.Exception (Error)
 import Util (chunks, lines, reduceR)
 
 parsePartOne :: String -> Array { before :: String, after :: String }
-parsePartOne input = lines input 
-  <#> trim # Array.filter (not <<< null)
+parsePartOne input = lines input
+  <#> trim
+  # Array.filter (not <<< null)
   <#> \line -> String.splitAt (String.length line `div` 2) line
 
 parsePartTwo :: String -> List (List String)
@@ -42,17 +43,21 @@ priority c
   | otherwise = 0
 
 solvePartOne :: Array { before :: String, after :: String } -> Int
-solvePartOne rucksacks = 
-  rucksacks 
-    <#> (\{ before, after } -> [before, after])
-    <#> findIntersection # concat
-    <#> priority # sum
+solvePartOne rucksacks =
+  rucksacks
+    <#> (\{ before, after } -> [ before, after ])
+    <#> findIntersection
+    # concat
+    <#> priority
+    # sum
 
 solvePartTwo :: List (List String) -> Int
-solvePartTwo rucksacks = 
-  rucksacks 
-    <#> findIntersection # join
-    <#> priority # sum
+solvePartTwo rucksacks =
+  rucksacks
+    <#> findIntersection
+    # join
+    <#> priority
+    # sum
 
 partOne :: String -> Either Error String
 partOne input = parsePartOne input # solvePartOne # show # Right

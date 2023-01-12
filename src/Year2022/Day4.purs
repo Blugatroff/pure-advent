@@ -15,12 +15,11 @@ type Range = { start :: Int, end :: Int }
 
 parseRange :: String -> Either Error Range
 parseRange range = case splitStringOnce "-" range of
-    Nothing -> Left $ error $ "failed to parse range: " <> range
-    Just (Tuple left right) -> do
-        start <- parseInt left
-        end <- parseInt right
-        pure { start, end }
-    
+  Nothing -> Left $ error $ "failed to parse range: " <> range
+  Just (Tuple left right) -> do
+    start <- parseInt left
+    end <- parseInt right
+    pure { start, end }
 
 parseLine :: String -> Either Error (Tuple Range Range)
 parseLine line = case splitStringOnce "," line of
@@ -49,7 +48,7 @@ rangesOverlap { start: ls, end: le } { start: rs, end: re } =
 solvePartOne :: Array (Tuple Range Range) -> Int
 solvePartOne lines = lines # Array.filter (uncurry rangesContainEachOther) # Array.length
 
-solvePartTwo ::  Array (Tuple Range Range) -> Int
+solvePartTwo :: Array (Tuple Range Range) -> Int
 solvePartTwo lines = lines # Array.filter (uncurry rangesOverlap) # Array.length
 
 partOne :: String -> Either Error String

@@ -9,4 +9,5 @@
 /.psa*
 /.spago
 /output-es/
-
+dist.js
+sample.txt

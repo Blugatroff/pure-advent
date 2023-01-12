@@ -45,7 +45,7 @@ parseMove line = line
   # Array.filter (notEq "")
   # traverse parseInt
   >>= case _ of
-    [amount, source, destination] -> Right { amount, source, destination }
+    [ amount, source, destination ] -> Right { amount, source, destination }
     _ -> Left $ error $ "Failed to parse move from line: " <> line
 
 parseMoves :: List String -> Either Error (List Move)
@@ -59,13 +59,12 @@ parse input = case splitOnce "" $ List.fromFoldable $ lines input of
     let stackMap = M.fromFoldable $ mapWithIndex (\i v -> Tuple (i + 1) v) $ parseStacks $ (transposeStacks $ Array.fromFoldable stacks)
     pure $ Tuple stackMap moves
 
-
 applyMove :: (Array Char -> Array Char) -> M.Map Int Stack -> Move -> M.Map Int Stack
-applyMove reverseOrNot stacks move = case Tuple (M.lookup move.source stacks) (M.lookup move.destination stacks) of
-  Tuple (Just srcStack) (Just dstStack) -> 
-    M.insert move.destination (reverseOrNot (Array.take move.amount srcStack) <> dstStack) stacks 
-    # M.insert move.source (Array.drop move.amount srcStack)
-  _ -> stacks
+applyMove reverseOrNot stacks move = case M.lookup move.source stacks, M.lookup move.destination stacks of
+  Just srcStack, Just dstStack ->
+    M.insert move.destination (reverseOrNot (Array.take move.amount srcStack) <> dstStack) stacks
+      # M.insert move.source (Array.drop move.amount srcStack)
+  _, _ -> stacks
 
 onTop :: M.Map Int Stack -> String
 onTop stacks = (M.values stacks >>= (Array.take 1 >>> List.fromFoldable)) # Array.fromFoldable # fromCharArray
@@ -73,9 +72,9 @@ onTop stacks = (M.values stacks >>= (Array.take 1 >>> List.fromFoldable)) # Arra
 solve :: (Array Char -> Array Char) -> Tuple (M.Map Int Stack) (List Move) -> String
 solve reverseOrNot (Tuple stacks moves) = onTop outputStacks
   where
-    folder (Tuple i s) move = Tuple (i + 1) (applyMove reverseOrNot s move)
+  folder (Tuple i s) move = Tuple (i + 1) (applyMove reverseOrNot s move)
 
-    (Tuple _ outputStacks) = foldl folder (Tuple 0 stacks) moves
+  (Tuple _ outputStacks) = foldl folder (Tuple 0 stacks) moves
 
 solvePartOne :: Tuple (M.Map Int Stack) (List Move) -> String
 solvePartOne = solve Array.reverse

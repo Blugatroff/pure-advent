@@ -16,13 +16,13 @@ allDifferent :: forall a. Ord a => List a -> Boolean
 allDifferent list = length list == S.size (S.fromFoldable list)
 
 solve :: Int -> String -> Int
-solve l stream = stream 
-    # toCharArray 
-    # fromFoldable 
-    # windows l
-    # takeWhile (not <<< allDifferent) 
-    # length
-    # (add l)
+solve l stream = stream
+  # toCharArray
+  # fromFoldable
+  # windows l
+  # takeWhile (not <<< allDifferent)
+  # length
+  # (add l)
 
 partOne :: String -> Either Error String
 partOne input = solve 4 input # show # Right
