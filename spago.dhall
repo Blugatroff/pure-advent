@@ -19,6 +19,7 @@
   , "nonempty"
   , "ordered-collections"
   , "prelude"
+  , "st"
   , "strings"
   , "tailrec"
   , "transformers"
@@ -29,4 +30,3 @@
 , packages = ./packages.dhall
 , sources = [ "src/**/*.purs" ]
 }
-

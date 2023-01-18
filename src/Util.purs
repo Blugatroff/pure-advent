@@ -15,6 +15,9 @@ module Util
   , splitOnce
   , splitStringOnce
   , trace
+  , pairs
+  , windows
+  , windows2
   ) where
 
 import Prelude
@@ -111,3 +114,16 @@ mapSnd f (Tuple a b) = Tuple a (f b)
 
 dedup :: forall fi fo v. Foldable fi => Ord v => Unfoldable fo => fi v -> fo v
 dedup = S.fromFoldable >>> S.toUnfoldable
+
+pairs :: forall a. List a -> List (Tuple a a)
+pairs list = chunks 2 list >>= case _ of
+  (a : b : List.Nil) -> List.singleton $ Tuple a b
+  _ -> List.Nil
+
+windows :: forall a. Int -> List a -> List (List a)
+windows _ Nil = Nil
+windows size list = List.take size list : windows size (List.drop 1 list)
+
+windows2 :: forall a. List a -> List (Tuple a a)
+windows2 l = List.zip l $ List.drop 1 l
+

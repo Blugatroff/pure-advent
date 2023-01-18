@@ -1,22 +1,4 @@
-module Year2022.Day7
-  ( CdTarget(..)
-  , FileSystem(..)
-  , TerminalLine(..)
-  , diskSize
-  , fileSystemEntries
-  , fileSystemSize
-  , indent
-  , insertEntry
-  , isDirectory
-  , parse
-  , parseLine
-  , partOne
-  , partTwo
-  , solvePartOne
-  , solvePartTwo
-  , updateSize
-  )
-  where
+module Year2022.Day7 (partOne, partTwo) where
 
 import Prelude
 

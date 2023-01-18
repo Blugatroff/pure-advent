@@ -14,6 +14,7 @@ import Year2022.Day10 as Day10
 import Year2022.Day11 as Day11
 import Year2022.Day12 as Day12
 import Year2022.Day13 as Day13
+import Year2022.Day14 as Day14
 
 days :: Array Day
 days =
@@ -30,4 +31,5 @@ days =
   , Day Day11.partOne Day11.partTwo
   , Day Day12.partOne Day12.partTwo
   , Day Day13.partOne Day13.partTwo
+  , Day Day14.partOne Day14.partTwo
   ]

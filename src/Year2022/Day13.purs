@@ -14,7 +14,7 @@ import Data.String.CodeUnits (fromCharArray, toCharArray)
 import Data.Traversable (traverse)
 import Data.Tuple (Tuple(..), fst, snd)
 import Effect.Exception (Error, error)
-import Util (chunks, indexed, lines, mapFst, parseInt)
+import Util (chunks, indexed, lines, mapFst, pairs, parseInt)
 
 data Element = Number Int | List (List Element)
 
@@ -45,11 +45,6 @@ parseElement ('[' : rest) = do
       ',' : rest -> run (el : previous) rest
       rest -> Right $ Tuple (el : previous) rest
 parseElement input = Left $ error $ "unexpected input: '" <> fromCharArray (Array.fromFoldable input) <> "'"
-
-pairs :: forall a. List a -> List (Tuple a a)
-pairs list = chunks 2 list >>= case _ of
-  (a : b : List.Nil) -> List.singleton $ Tuple a b
-  _ -> List.Nil
 
 parse :: String -> Either Error (Array Element)
 parse input = lines input <#> String.trim

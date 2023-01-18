@@ -1,16 +1,13 @@
-module Year2022.Day6 where
+module Year2022.Day6 (partOne, partTwo) where
 
 import Prelude
 
 import Data.Either (Either(..))
-import Data.List (List(..), drop, length, take, takeWhile, (:), fromFoldable)
+import Data.List (List, fromFoldable, length, takeWhile)
 import Data.Set as S
 import Data.String.CodeUnits (toCharArray)
 import Effect.Exception (Error)
-
-windows :: forall a. Int -> List a -> List (List a)
-windows _ Nil = Nil
-windows size list = take size list : windows size (drop 1 list)
+import Util (windows)
 
 allDifferent :: forall a. Ord a => List a -> Boolean
 allDifferent list = length list == S.size (S.fromFoldable list)
