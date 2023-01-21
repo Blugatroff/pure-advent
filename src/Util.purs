@@ -1,11 +1,13 @@
 module Util
-  ( chunks
+  ( bench
+  , chunks
   , dedup
   , indexed
   , lines
   , mapFst
   , mapSnd
   , mapWithPrevious
+  , pairs
   , parseInt
   , reduceL
   , reduceR
@@ -15,7 +17,6 @@ module Util
   , splitOnce
   , splitStringOnce
   , trace
-  , pairs
   , windows
   , windows2
   ) where
@@ -33,6 +34,7 @@ import Data.Set as S
 import Data.String as String
 import Data.Tuple (Tuple(..))
 import Data.Unfoldable (class Unfoldable)
+import Effect (Effect)
 import Effect.Console as Console
 import Effect.Exception (Error, error)
 import Effect.Unsafe (unsafePerformEffect)
@@ -127,3 +129,11 @@ windows size list = List.take size list : windows size (List.drop 1 list)
 windows2 :: forall a. List a -> List (Tuple a a)
 windows2 l = List.zip l $ List.drop 1 l
 
+foreign import performanceNow :: Effect Number
+
+bench :: forall a b. (a -> b) -> a -> Effect (Tuple Number b)
+bench f a = do
+  before <- performanceNow
+  b <- pure $ f a
+  after <- performanceNow
+  pure $ Tuple (after - before) b

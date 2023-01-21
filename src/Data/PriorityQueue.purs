@@ -1,4 +1,4 @@
-module PriorityQueue
+module Data.PriorityQueue
   ( PriorityQueue
   , delete
   , insert

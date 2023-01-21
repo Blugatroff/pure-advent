@@ -2,28 +2,34 @@ module Year2022.Day14 (partOne, partTwo) where
 
 import Prelude
 
-import Control.Bind (bindFlipped)
 import Control.Monad.Rec.Class (Step(..), tailRecM)
 import Control.Monad.ST (ST)
 import Control.Monad.ST as ST
-import Control.Monad.State (State, evalState, get, modify, modify_)
 import Data.Array as Array
-import Data.Array.ST (STArray)
-import Data.Array.ST as STArray
 import Data.Either (Either(..))
 import Data.List as List
-import Data.Map as M
+import Data.Map.ST.Int (IntMap)
+import Data.Map.ST.Int as IntMap
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.String as String
 import Data.Traversable (class Foldable, for, for_, maximum, minimum, traverse)
 import Data.Tuple (Tuple(..), fst, snd)
-import Effect.Exception (error)
-import Util (lines, parseInt, splitStringOnce, trace, windows2)
+import Effect.Exception (Error, error)
+import Util (lines, parseInt, splitStringOnce, windows2)
 
 type Pos = { x :: Int, y :: Int }
 
 type Path = Array Pos
 
+data Block = Stone | Sand
+
+instance showBlock :: Show Block where
+  show Stone = "Stone"
+  show Sand = "Sand"
+
+derive instance eqBlock :: Eq Block
+
+parsePath ∷ String → Either Error (Array Pos)
 parsePath line =
   String.split (String.Pattern "->") line
     <#> String.trim
@@ -35,197 +41,131 @@ parsePath line =
           Right { x, y }
         Nothing -> Left $ error $ "failed to parse path: " <> line
 
+parse ∷ String → Either Error (Array (Array Pos))
 parse input = lines input <#> String.trim # Array.filter (not <<< String.null) # traverse parsePath
 
-data Block = Stone | Sand
+data Cave r = Cave (IntMap r (IntMap r Block))
 
-derive instance eqBlock :: Eq Block
+caveEmpty :: forall r. ST r (Cave r)
+caveEmpty = Cave <$> IntMap.empty
 
-type Cave = M.Map Pos Block
+caveLookup :: forall r. Pos -> Cave r -> ST r (Maybe Block)
+caveLookup { x, y } (Cave columns) = IntMap.lookup x columns >>= case _ of
+  Just column -> IntMap.lookup y column
+  Nothing -> pure Nothing
 
-insertStone { x: x1, y: y1 } { x: x2, y: y2 } | y1 == y2 = for_ (Array.range x1 x2) $ \x -> modify $ M.insert { x, y: y1 } Stone
-insertStone { x: x1, y: y1 } { x: x2, y: y2 } | x1 == x2 = for_ (Array.range y1 y2) $ \y -> modify $ M.insert { x: x1, y } Stone
-insertStone _ _ = pure unit
+caveInsert :: forall r. Pos -> Block -> Cave r -> ST r Unit
+caveInsert { x, y } block (Cave columns) = do
+  IntMap.lookup x columns >>= case _ of
+    Just column -> void $ IntMap.insert y block column
+    Nothing -> do
+      column <- IntMap.empty
+      void $ IntMap.insert y block column
+      void $ IntMap.insert x column columns
 
-insertPath path =
-  for_ (windows2 $ List.fromFoldable path)
-    \(Tuple from to) -> insertStone from to
+caveEntries :: forall r. Cave r -> ST r (Array (Tuple Pos Block))
+caveEntries (Cave columns) = Array.concat <$> do
+  columns <- IntMap.entries columns
+  for columns \(Tuple x column) -> do
+    cells <- IntMap.entries column
+    pure $ (\(Tuple y block) -> Tuple { x, y } block) <$> cells
 
-insertPaths paths = for_ paths insertPath
+insertStone :: forall r. Pos -> Pos -> Cave r -> ST r Unit
+insertStone { x: x1, y: y1 } { x: x2, y: y2 } cave | y1 == y2 = for_ (Array.range x1 x2) $ \x -> caveInsert { x, y: y1 } Stone cave
+insertStone { x: x1, y: y1 } { x: x2, y: y2 } cave | x1 == x2 = for_ (Array.range y1 y2) $ \y -> caveInsert { x: x1, y } Stone cave
+insertStone _ _ _ = pure unit
 
-drawCave cave = String.joinWith "\n" $
-  Array.range minY maxY <#> \y ->
-    String.joinWith "" $ Array.range minX maxX <#> \x ->
-      case M.lookup { x, y } cave of
-        Nothing -> "."
-        Just Stone -> "#"
-        Just Sand -> "o"
+insertPath :: forall r. Path -> Cave r -> ST r Unit
+insertPath path cave = for_ (windows2 $ List.fromFoldable path)
+  \(Tuple from to) -> insertStone from to cave
+
+insertPaths ∷ forall f r. Foldable f => f (Array Pos) → Cave r → ST r Unit
+insertPaths paths cave = for_ paths \path -> insertPath path cave
+
+simulateSand :: forall r. Int -> Pos -> Cave r -> ST r Boolean
+simulateSand floor pos cave = tailRecM go pos
   where
-  minX = M.keys cave # Array.fromFoldable <#> _.x # minimum # fromMaybe 0
-  minY = M.keys cave # Array.fromFoldable <#> _.y # minimum # fromMaybe 0
+  go :: Pos -> ST r (Step Pos Boolean)
+  go pos@{ x, y } = caveLookup pos cave >>= case _ of
+    Nothing -> choose pos >>= case _ of
+      Just pos -> do
+        if y + 1 < floor then do
+          pure $ Loop pos
+        else do
+          caveInsert { x, y } Sand cave
+          pure $ Done true
+      Nothing -> do
+        caveInsert { x, y } Sand cave
+        pure $ Done false
+    Just _ -> pure $ Done false
 
-  maxX = M.keys cave # Array.fromFoldable <#> _.x # maximum # fromMaybe 0
-  maxY = M.keys cave # Array.fromFoldable <#> _.y # maximum # fromMaybe 0
+  choose :: Pos -> ST r (Maybe Pos)
+  choose { x, y } = do
+    let downPos = { x, y: y + 1 }
+    let leftPos = { x: x - 1, y: y + 1 }
+    let rightPos = { x: x + 1, y: y + 1 }
+    down <- caveLookup downPos cave
+    left <- caveLookup leftPos cave
+    right <- caveLookup rightPos cave
+    pure $ case down, left, right of
+      Nothing, _, _ -> Just downPos
+      _, Nothing, _ -> Just leftPos
+      _, _, Nothing -> Just rightPos
+      _, _, _ -> Nothing
 
-stDrawCave :: forall r. STCave r -> ST r String
-stDrawCave cave = do
-  width <- stCaveWidth cave
-  height <- stCaveHeight cave
-  for (Array.range 0 (height
-  pure ""
+findAbyss :: forall r. Cave r -> ST r Int
+findAbyss cave = caveEntries cave
+  <#> Array.filter (snd >>> eq Stone)
+  <#> map (fst >>> _.y)
+  <#> maximum
+  <#> fromMaybe 0
 
-stInsertStone :: forall r. Pos -> Pos -> STCave r -> ST r Unit
-stInsertStone { x: x1, y: y1 } { x: x2, y: y2 } cave | y1 == y2 = for_ (Array.range x1 x2) $ \x -> stCaveInsert { x, y: y1 } Stone cave
-stInsertStone { x: x1, y: y1 } { x: x2, y: y2 } cave | x1 == x2 = for_ (Array.range y1 y2) $ \y -> stCaveInsert { x: x1, y } Stone cave
-stInsertStone _ _ _ = pure unit
-
-stInsertPath :: forall r. Path -> STCave r -> ST r Unit
-stInsertPath path cave = for_ (windows2 $ List.fromFoldable path)
-  \(Tuple from to) -> stInsertStone from to cave
-
-stInsertPaths paths cave = for_ paths \path -> stInsertPath path cave
-
-data STCave r = Grid (STArray r (STArray r (Maybe Block)))
-
-stCaveEmpty :: forall r. ST r (STCave r)
-stCaveEmpty = Grid <$> STArray.new
-
-stCaveWidth :: forall r. STCave r -> ST r Int
-stCaveWidth (Grid columns) = STArray.length columns
-
-stCaveHeight :: forall r. STCave r -> ST r Int
-stCaveHeight (Grid columns) = do
-  columns <- STArray.freeze columns
-  fromMaybe 0 <$> maximum <$> (for columns $ \column -> STArray.length column)
-
-stCaveLookup :: forall r. Pos -> STCave r -> ST r (Maybe Block)
-stCaveLookup { x, y } (Grid columns) = STArray.peek x columns >>= case _ of
-    Nothing -> pure Nothing
-    Just row -> STArray.peek y row <#> (bindFlipped identity)
-
-stCaveInsert :: forall r. Pos -> Block -> STCave r -> ST r Unit
-stCaveInsert { x, y } block (Grid columns) = do
-  width <- STArray.length columns
-  ST.while (STArray.length columns <#> \width -> width <= x) do
-    emptyColumn <- STArray.new
-    void $ STArray.push emptyColumn columns
-  column <- STArray.peek x columns
-  case column of
-    Nothing -> pure unit
-    Just column -> do
-      ST.while (STArray.length column <#> \height -> height < y) do
-         void $ STArray.push Nothing column
-      void $ STArray.poke y (Just block) column
-
-stSimulateSand :: forall r. Int -> Pos -> STCave r -> ST r Boolean
-stSimulateSand floor pos@{ x, y } grid = do
-  block <- stCaveLookup pos grid
-  case block of
-    Nothing -> do
-      let downPos = { x, y: y + 1 }
-      let leftPos = { x: x - 1, y: y + 1 }
-      let rightPos = { x: x + 1, y: y + 1 }
-      down <- stCaveLookup downPos grid
-      left <- stCaveLookup leftPos grid
-      right <- stCaveLookup rightPos grid
-      let
-        pos =
-          ( case down, left, right of
-              Nothing, _, _ -> Just downPos
-              _, Nothing, _ -> Just leftPos
-              _, _, Nothing -> Just rightPos
-              _, _, _ -> Nothing
-          )
-      case pos of
-        Just pos -> do
-          if y + 1 < floor then do
-            stSimulateSand floor pos grid
-          else do
-            stCaveInsert { x, y } Sand grid
-            pure true
-        Nothing -> do
-          stCaveInsert { x, y } Sand grid
-          pure false
-    Just _ -> pure false
-
-simulateSand :: Int -> Pos -> State Cave Boolean
-simulateSand floor pos@{ x, y } = do
-  block <- get <#> M.lookup pos
-  case block of
-    Nothing -> do
-      let downPos = { x, y: y + 1 }
-      let leftPos = { x: x - 1, y: y + 1 }
-      let rightPos = { x: x + 1, y: y + 1 }
-      down <- get <#> M.lookup downPos
-      left <- get <#> M.lookup leftPos
-      right <- get <#> M.lookup rightPos
-      let
-        pos =
-          ( case down, left, right of
-              Nothing, _, _ -> Just downPos
-              _, Nothing, _ -> Just leftPos
-              _, _, Nothing -> Just rightPos
-              _, _, _ -> Nothing
-          )
-      case pos of
-        Just pos -> do
-          if y + 1 < floor then do
-            simulateSand floor pos
-          else do
-            modify_ $ M.insert { x, y } Sand
-            pure true
-        Nothing -> do
-          modify_ $ M.insert { x, y } Sand
-          pure false
-    Just _ -> pure false
-
-stFindAbyss :: forall r. STCave r -> ST r Int
-stFindAbyss = stCaveHeight
-
-
-findAbyss :: Cave -> Int
-findAbyss =
-  M.toUnfoldableUnordered
-    >>> List.filter (snd >>> eq Stone)
-    >>> map (fst >>> _.y)
-    >>> maximum
-    >>> fromMaybe 0
+drawCave :: forall r. Cave r -> ST r String
+drawCave cave = do
+  minX <- findDimension _.x minimum
+  minY <- findDimension _.y minimum
+  maxX <- findDimension _.x maximum
+  maxY <- findDimension _.y maximum
+  String.joinWith "\n" <$>
+    for (Array.range minY maxY) \y ->
+      String.joinWith "" <$> for (Array.range minX maxX) \x -> do
+        block <- caveLookup { x, y } cave
+        pure $ case block of
+          Nothing -> "."
+          Just Sand -> "o"
+          Just Stone -> "#"
+  where
+  findDimension key extreme = caveEntries cave
+    >>= \entries -> pure $ fromMaybe 0 $ extreme $ key <$> fst <$> entries
 
 solvePartOne :: forall f. Foldable f => f Path -> String
-solvePartOne paths = flip evalState M.empty do
-  insertPaths paths
-  abyss <- get <#> findAbyss
-  count <- tailRecM (go abyss) 0
-  get <#> drawCave <#> (_ `append` ("\n" <> show count))
+solvePartOne paths = ST.run do
+  cave <- caveEmpty
+  insertPaths paths cave
+  abyss <- findAbyss cave
+  count <- tailRecM (go cave abyss) 0
+  drawCave cave <#> \drawing -> drawing <> "\n" <> show count
   where
-  go abyss n = simulateSand abyss { x: 500, y: 0 }
+  go :: forall r. Cave r -> Int -> Int -> ST r (Step Int Int)
+  go cave abyss n = simulateSand abyss { x: 500, y: 0 } cave
     <#> case _ of
       true -> Done n
       false -> Loop $ n + 1
 
 solvePartTwo :: forall f. Foldable f => f Path -> Int
-solvePartTwo paths = flip evalState M.empty do
-  insertPaths paths
-  floor <- get <#> findAbyss <#> add 2
-  tailRecM (go floor) 0
-  where
-  go floor n = get <#> M.lookup { x: 500, y: 0 } >>= case _ of
-    Just _ -> pure $ Done n
-    Nothing -> simulateSand floor { x: 500, y: 0 } $> Loop (n + 1)
-
-stSolvePartTwo :: forall f. Foldable f => f Path -> Int
-stSolvePartTwo paths = ST.run do
-  cave <- stCaveEmpty
-  stInsertPaths paths cave
-  floor <- stFindAbyss cave <#> add 2 <#> trace "floor"
+solvePartTwo paths = ST.run do
+  cave <- caveEmpty
+  insertPaths paths cave
+  floor <- findAbyss cave <#> add 2
   tailRecM (go cave floor) 0
   where
-  go :: forall r. STCave r -> Int -> Int -> ST r (Step Int Int)
-  go cave floor n = stCaveLookup { x: 500, y: 0 } cave >>= case _ of
+  go :: forall r. Cave r -> Int -> Int -> ST r (Step Int Int)
+  go cave floor n = caveLookup { x: 500, y: 0 } cave >>= case _ of
     Just _ -> pure $ Done n
-    Nothing -> stSimulateSand floor { x: 500, y: 0 } cave $> Loop (n + 1)
+    Nothing -> simulateSand floor { x: 500, y: 0 } cave $> Loop (n + 1)
 
-
+partOne ∷ String → Either Error String
 partOne = parse >>> map solvePartOne
 
-partTwo = parse >>> map (stSolvePartTwo >>> show)
+partTwo ∷ String → Either Error String
+partTwo = parse >>> map solvePartTwo >>> map show

@@ -5,6 +5,3 @@ let upstream =
 in  upstream
   with js-bigints.repo = "https://github.com/rowtype-yoga/purescript-js-bigints.git"
   with js-bigints.version = "a7fa91c08f873bc590512302ac08b273f8fdcae4"
-  with arrays.repo = "https://github.com/Blugatroff/purescript-arrays.git"
-  with arrays.version = "b518e62e1266ac06c0033be50bc50533b18babcb"
-

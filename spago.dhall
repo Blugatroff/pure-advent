@@ -8,6 +8,7 @@
   , "enums"
   , "exceptions"
   , "foldable-traversable"
+  , "foreign-object"
   , "integers"
   , "js-bigints"
   , "lazy"
@@ -26,6 +27,7 @@
   , "tuples"
   , "unfoldable"
   , "unicode"
+  , "unsafe-coerce"
   ]
 , packages = ./packages.dhall
 , sources = [ "src/**/*.purs" ]

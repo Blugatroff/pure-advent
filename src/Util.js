@@ -5,3 +5,5 @@ export const parseNumberImpl = Left => Right => s => {
     if (isNaN(n) || !isFinite(n)) return Left(new Error("failed to parse " + s));
     return Right(n);
 };
+
+export const performanceNow = () => performance.now()

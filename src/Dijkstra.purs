@@ -10,7 +10,7 @@ import Data.Maybe (Maybe(..), maybe)
 import Data.Set as S
 import Data.Traversable (foldr)
 import Data.Tuple (Tuple(..))
-import PriorityQueue as PQ
+import Data.PriorityQueue as PQ
 
 class World world pos where
   lookupCell :: pos -> world -> Maybe Cell
@@ -53,11 +53,11 @@ findPaths previous (Tuple pos cost) world = lookupCell pos world <#> this
     thisCost = cellCost cell
 
     this :: Lazy (Path pos)
-    this =  defer \_ -> case cell of
-        Destination _ -> PathEnd previous pos cost thisCost
-        _ -> do
-          let next = adjacentCells pos world <#> (\p -> findPaths (Just this) (Tuple p (cost + thisCost)) world) # Array.catMaybes
-          PathBranch previous pos cost next
+    this = defer \_ -> case cell of
+      Destination _ -> PathEnd previous pos cost thisCost
+      _ -> do
+        let next = adjacentCells pos world <#> (\p -> findPaths (Just this) (Tuple p (cost + thisCost)) world) # Array.catMaybes
+        PathBranch previous pos cost next
 
 type PathQueue pos = PQ.PriorityQueue (Path pos)
 
