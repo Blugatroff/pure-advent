@@ -1,11 +1,14 @@
 module Util
-  ( bench
+  ( TransparentString(..)
+  , bench
   , chunks
   , dedup
+  , filterString
   , indexed
   , lines
   , mapFst
   , mapSnd
+  , mapTrace
   , mapWithPrevious
   , pairs
   , parseInt
@@ -23,6 +26,7 @@ module Util
 
 import Prelude
 
+import Data.Array as Array
 import Data.Either (Either(..), note)
 import Data.Foldable (class Foldable)
 import Data.FunctorWithIndex (class FunctorWithIndex, mapWithIndex)
@@ -32,6 +36,7 @@ import Data.List as List
 import Data.Maybe (Maybe(..))
 import Data.Set as S
 import Data.String as String
+import Data.String.CodeUnits (fromCharArray, toCharArray)
 import Data.Tuple (Tuple(..))
 import Data.Unfoldable (class Unfoldable)
 import Effect (Effect)
@@ -51,8 +56,11 @@ parseInt ∷ String → Either Error Int
 parseInt = parseNumber >=> isInt
 
 trace :: forall a. Show a => String -> a -> a
-trace label value = unsafePerformEffect do
-  Console.error $ label <> ": " <> show value
+trace = flip mapTrace identity
+
+mapTrace :: forall a b. Show b => String -> (a -> b) -> a -> a
+mapTrace label map value = unsafePerformEffect do
+  Console.error $ label <> ": " <> show (map value)
   pure value
 
 split :: forall a. Eq a => a -> List a -> List (List a)
@@ -137,3 +145,11 @@ bench f a = do
   b <- pure $ f a
   after <- performanceNow
   pure $ Tuple (after - before) b
+
+filterString :: (Char -> Boolean) -> String -> String
+filterString f = toCharArray >>> Array.filter f >>> fromCharArray
+
+data TransparentString = TransparentString String
+
+instance showTransparentString :: Show TransparentString where
+  show (TransparentString s) = s

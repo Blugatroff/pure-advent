@@ -4,7 +4,6 @@ import Prelude
 
 import Control.Monad.Error.Class (liftEither, try)
 import Control.Monad.Except (ExceptT(..), runExceptT)
-import Data.Array (index)
 import Data.Array as Array
 import Data.Bifunctor (lmap)
 import Data.Either (Either(..))
@@ -12,6 +11,7 @@ import Data.Foldable (for_)
 import Data.FunctorWithIndex (mapWithIndex)
 import Data.List (List(..), (:))
 import Data.List as List
+import Data.Map as Map
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
 import Day (Day(..), PartName(..))
@@ -59,7 +59,7 @@ printHelp = do
 start :: Arguments -> ExceptT Error Effect Unit
 start Help = liftEffect printHelp
 start (RunDay year dayIndex partName file) = do
-  part <- case useIndex dayIndex Year2022.days of
+  part <- case Map.lookup (unIndex dayIndex) Year2022.days of
     Just (Day partOne partTwo) -> pure $ case partName of
       PartOne -> partOne
       PartTwo -> partTwo
@@ -99,8 +99,8 @@ buildPath year day = "." <> sep <> "inputs" <> sep <> show year <> sep <> show d
 data Index :: forall k. k -> Type
 data Index a = Index Int
 
-useIndex :: forall a. Index a -> Array a -> Maybe a
-useIndex (Index i) array = index array (i - 1)
+unIndex :: forall a. Index a -> Int
+unIndex (Index i) = i
 
 instance showIndex :: Show (Index a) where
   show (Index index) = show index
