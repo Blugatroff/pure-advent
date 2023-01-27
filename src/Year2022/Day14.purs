@@ -138,6 +138,8 @@ drawCave cave = do
   findDimension key extreme = caveEntries cave
     >>= \entries -> pure $ fromMaybe 0 $ extreme $ key <$> fst <$> entries
 
+
+
 solvePartOne :: forall f. Foldable f => f Path -> String
 solvePartOne paths = ST.run do
   cave <- caveEmpty

@@ -124,7 +124,6 @@ solvePartTwo bounds sensors = TransparentString $ maybe "No solution found" show
   where
   boundRange = Range 0 bounds
 
-  f :: Int -> Maybe Pos
   f y | y > bounds = Nothing
   f y = case ranges y of
     (a : _ : List.Nil) -> Just { y, x: rangeEnd a + 1 }
@@ -136,3 +135,4 @@ solvePartTwo bounds sensors = TransparentString $ maybe "No solution found" show
 
 partOne = part solvePartOne 10 2000000
 partTwo = part solvePartTwo 20 4000000
+

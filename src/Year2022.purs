@@ -11,6 +11,7 @@ import Year2022.Day12 as Day12
 import Year2022.Day13 as Day13
 import Year2022.Day14 as Day14
 import Year2022.Day15 as Day15
+import Year2022.Day18 as Day18
 import Year2022.Day2 as Day2
 import Year2022.Day3 as Day3
 import Year2022.Day4 as Day4
@@ -36,4 +37,5 @@ days = Map.fromFoldable
   , Tuple 13 $ Day Day13.partOne Day13.partTwo
   , Tuple 14 $ Day Day14.partOne Day14.partTwo
   , Tuple 15 $ Day Day15.partOne Day15.partTwo
+  , Tuple 18 $ Day Day18.partOne Day18.partTwo
   ]
