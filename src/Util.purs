@@ -27,10 +27,10 @@ module Util
 import Prelude
 
 import Data.Array as Array
-import Data.Either (Either(..), note)
+import Data.Either (Either, note)
 import Data.Foldable (class Foldable)
 import Data.FunctorWithIndex (class FunctorWithIndex, mapWithIndex)
-import Data.Int (fromNumber)
+import Data.Int as Int
 import Data.List (List(..), reverse, (:))
 import Data.List as List
 import Data.Maybe (Maybe(..))
@@ -44,16 +44,8 @@ import Effect.Console as Console
 import Effect.Exception (Error, error)
 import Effect.Unsafe (unsafePerformEffect)
 
-foreign import parseNumberImpl :: (forall e a. e -> Either e a) -> (forall e a. a -> Either e a) -> String -> Either Error Number
-
-parseNumber :: String -> Either Error Number
-parseNumber = parseNumberImpl Left Right
-
-isInt :: Number -> Either Error Int
-isInt n = fromNumber n # note (error (show n <> " is not an int"))
-
-parseInt ∷ String → Either Error Int
-parseInt = parseNumber >=> isInt
+parseInt :: String -> Either Error Int
+parseInt s = note (error $ s <> " is not an int") $ Int.fromString s
 
 trace :: forall a. Show a => String -> a -> a
 trace = flip mapTrace identity
