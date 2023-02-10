@@ -1,5 +1,5 @@
 module Data.Map.ST.Int
-  ( IntMap(..)
+  ( IntMap
   , delete
   , empty
   , entries
@@ -14,20 +14,22 @@ module Data.Map.ST.Int
 import Prelude
 
 import Control.Monad.ST (ST)
-import Data.Either (fromRight)
 import Data.Map as M
 import Data.Map.ST.String (StringMap)
 import Data.Map.ST.String as STMapString
 import Data.Maybe (Maybe)
 import Data.Traversable (class Traversable, traverse_)
 import Data.Tuple (Tuple(..))
+import Safe.Coerce (coerce)
 import Unsafe.Coerce (unsafeCoerce)
-import Util (mapFst, parseInt)
+import Util (mapFst)
+
+foreign import unsafeParseInt :: String -> Int
 
 newtype IntMap r a = IntMap (StringMap r a)
 
 empty ∷ forall r a. ST r (IntMap r a)
-empty = IntMap <$> STMapString.empty
+empty = coerce (STMapString.empty :: ST r (StringMap r a))
 
 insert :: forall r a. Int -> a -> IntMap r a -> ST r Unit
 insert = unsafeCoerce STMapString.insert
@@ -39,13 +41,13 @@ lookup :: forall r a. Int -> IntMap r a -> ST r (Maybe a)
 lookup = unsafeCoerce STMapString.lookup
 
 entries :: forall r a. IntMap r a -> ST r (Array (Tuple Int a))
-entries (IntMap stringMap) = STMapString.entries stringMap <#> (map $ mapFst (fromRight 0 <<< parseInt))
+entries (IntMap stringMap) = map (mapFst unsafeParseInt) <$> STMapString.entries stringMap
 
 values :: forall r a. IntMap r a -> ST r (Array a)
-values (IntMap stringMap) = STMapString.values stringMap
+values = unsafeCoerce STMapString.values
 
 keys :: forall r a. IntMap r a -> ST r (Array Int)
-keys (IntMap stringMap) = STMapString.keys stringMap <#> map (fromRight 0 <<< parseInt)
+keys (IntMap stringMap) = STMapString.keys stringMap <#> map unsafeParseInt
 
 freeze :: forall r a. IntMap r a -> ST r (M.Map Int a)
 freeze map = M.fromFoldable <$> entries map

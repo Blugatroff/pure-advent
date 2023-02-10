@@ -1,6 +1,7 @@
 module Util
   ( TransparentString(..)
   , bench
+  , bindMaybes
   , chunks
   , dedup
   , filterString
@@ -22,12 +23,13 @@ module Util
   , trace
   , windows
   , windows2
-  ) where
+  )
+  where
 
 import Prelude
 
 import Data.Array as Array
-import Data.Either (Either, note)
+import Data.Either (Either(..))
 import Data.Foldable (class Foldable)
 import Data.FunctorWithIndex (class FunctorWithIndex, mapWithIndex)
 import Data.Int as Int
@@ -45,7 +47,9 @@ import Effect.Exception (Error, error)
 import Effect.Unsafe (unsafePerformEffect)
 
 parseInt :: String -> Either Error Int
-parseInt s = note (error $ s <> " is not an int") $ Int.fromString s
+parseInt s = case Int.fromString s of
+  Nothing -> Left $ error $ s <> " is not an int"
+  Just n -> Right n
 
 trace :: forall a. Show a => String -> a -> a
 trace = flip mapTrace identity
@@ -145,3 +149,9 @@ data TransparentString = TransparentString String
 
 instance showTransparentString :: Show TransparentString where
   show (TransparentString s) = s
+
+bindMaybes :: forall a. a -> List (a -> Maybe a) -> Maybe a
+bindMaybes _ List.Nil = Nothing
+bindMaybes a (x:xs) = case x a of
+  Nothing -> Nothing
+  Just a -> bindMaybes a xs

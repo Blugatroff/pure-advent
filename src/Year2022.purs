@@ -21,6 +21,7 @@ import Year2022.Day7 as Day7
 import Year2022.Day8 as Day8
 import Year2022.Day9 as Day9
 
+days ∷ Map.Map Int Day
 days = Map.fromFoldable
   [ Tuple 1 $ Day Day1.partOne Day1.partTwo
   , Tuple 2 $ Day Day2.partOne Day2.partTwo

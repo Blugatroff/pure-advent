@@ -4,6 +4,7 @@ import Prelude
 
 import Data.Array as Array
 import Data.Either (Either(..))
+import Data.List as List
 import Data.Map as M
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Set (Set)
@@ -12,7 +13,7 @@ import Data.String as String
 import Data.Traversable (maximum, minimum, traverse)
 import Data.Tuple (Tuple(..))
 import Effect.Exception (Error, error)
-import Util (lines, parseInt)
+import Util (bindMaybes, lines, parseInt)
 
 type Pos = { x :: Int, y :: Int, z :: Int }
 
@@ -31,6 +32,7 @@ parse input = lines input
   # traverse parseLine
   <#> S.fromFoldable
 
+neighbours ∷ Pos → Array Pos
 neighbours { x, y, z } =
   [ { x: x - 1, y, z }
   , { x: x + 1, y, z }
@@ -40,6 +42,7 @@ neighbours { x, y, z } =
   , { x, y, z: z + 1 }
   ]
 
+solvePartOne ∷ Set Pos → Int
 solvePartOne cubes =
   cubes
     # S.toUnfoldable
@@ -47,32 +50,40 @@ solvePartOne cubes =
     # Array.filter (\p -> not $ S.member p cubes)
     # Array.length
 
+fill ∷ Set Pos → Pos → Maybe (Set Pos)
 fill cubes from = flow from S.empty
   where
+  flow :: Pos -> Set Pos -> Maybe (Set Pos)
   flow { x } _ | x < minX || x > maxX = Nothing
   flow { y } _ | y < minY || y > maxY = Nothing
   flow { z } _ | z < minZ || z > maxZ = Nothing
   flow pos visited | S.member pos cubes = Just visited
   flow pos visited | S.member pos visited = Just visited
-  flow (pos@{ x, y, z }) visited =
-    flow { x: x + 1, y, z } (S.insert pos visited)
-      >>= flow { x: x + 1, y, z }
-      >>= flow { x: x - 1, y, z }
-      >>= flow { x, y: y + 1, z }
-      >>= flow { x, y: y - 1, z }
-      >>= flow { x, y, z: z - 1 }
-      >>= flow { x, y, z: z + 1 }
+  flow (pos@{ x, y, z }) visited = 
+    bindMaybes (S.insert pos visited) $ List.fromFoldable
+      [ flow { x: x + 1, y, z } 
+      , flow { x: x + 1, y, z }
+      , flow { x: x - 1, y, z }
+      , flow { x, y: y + 1, z }
+      , flow { x, y: y - 1, z }
+      , flow { x, y, z: z - 1 }
+      , flow { x, y, z: z + 1 } ]
 
   cubePositions :: Array Pos
   cubePositions = S.toUnfoldable cubes
 
-  minX = cubePositions <#> _.x # minimum # fromMaybe 0
-  minY = cubePositions <#> _.y # minimum # fromMaybe 0
-  minZ = cubePositions <#> _.z # minimum # fromMaybe 0
-  maxX = cubePositions <#> _.x # maximum # fromMaybe 0
-  maxY = cubePositions <#> _.y # maximum # fromMaybe 0
-  maxZ = cubePositions <#> _.z # maximum # fromMaybe 0
+  xs = _.x <$> cubePositions
+  ys = _.y <$> cubePositions
+  zs = _.z <$> cubePositions
 
+  minX = fromMaybe 0 $ minimum xs
+  minY = fromMaybe 0 $ minimum ys
+  minZ = fromMaybe 0 $ minimum zs
+  maxX = fromMaybe 0 $ maximum xs
+  maxY = fromMaybe 0 $ maximum ys
+  maxZ = fromMaybe 0 $ maximum zs
+
+solvePartTwo ∷ Set Pos → Int
 solvePartTwo cubes = Array.length $ Array.filter (flip M.lookup lookup >>> fromMaybe false) neighs
   where
   neighs :: Array Pos
@@ -86,5 +97,8 @@ solvePartTwo cubes = Array.length $ Array.filter (flip M.lookup lookup >>> fromM
     # map (\pos -> Tuple pos (fill cubes pos == Nothing))
     # M.fromFoldable
 
+partOne ∷ String → Either Error String
 partOne input = parse input <#> solvePartOne <#> show
+
+partTwo ∷ String → Either Error String
 partTwo input = parse input <#> solvePartTwo <#> show
