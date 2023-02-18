@@ -8,12 +8,13 @@ import Data.Array as Array
 import Data.Bifunctor (lmap)
 import Data.Either (Either(..))
 import Data.Foldable (for_)
+import Data.Function (on)
 import Data.FunctorWithIndex (mapWithIndex)
 import Data.List (List(..), (:))
 import Data.List as List
 import Data.Map as Map
 import Data.Maybe (Maybe(..))
-import Data.Tuple (Tuple(..))
+import Data.Tuple (Tuple(..), fst)
 import Day (Day(..), PartName(..))
 import Effect (Effect)
 import Effect.Class (liftEffect)
@@ -72,11 +73,11 @@ start (RunDay year dayIndex partName file) = do
   result <- liftEither $ part input
   liftEffect $ Console.log result
 start RunAll = do
-  let days = Year2022.days # mapWithIndex Tuple
+  let days = Array.sortBy (compare `on` fst) $ Map.toUnfoldable Year2022.days
   for_ days $ \(Tuple i (Day partOne partTwo)) -> do
-    liftEffect $ Console.log $ "Day " <> show (i + 1)
+    liftEffect $ Console.log $ "Day " <> show i
 
-    input <- ExceptT $ readInputFile $ buildPath 2022 (i + 1)
+    input <- ExceptT $ readInputFile $ buildPath 2022 i
 
     resultPartOne <- liftEither $ partOne input
     liftEffect $ Console.log $ resultPartOne
