@@ -1,22 +1,14 @@
 module Year2022.Day3 (partOne, partTwo) where
 
-import Prelude
+import MeLude
 
-import Data.Array (concat)
 import Data.Array as Array
 import Data.Char (toCharCode)
 import Data.CodePoint.Unicode (isAsciiLower, isAsciiUpper)
-import Data.Either (Either(..))
-import Data.Foldable (class Foldable, sum)
-import Data.List (List)
 import Data.List as List
-import Data.Maybe (maybe)
 import Data.Set as S
 import Data.String (codePointFromChar, null, trim)
 import Data.String as String
-import Data.String.CodeUnits (toCharArray)
-import Data.Unfoldable (class Unfoldable)
-import Effect.Exception (Error)
 import Util (chunks, lines, reduceR)
 
 parsePartOne :: String -> Array { before :: String, after :: String }
@@ -46,8 +38,7 @@ solvePartOne :: Array { before :: String, after :: String } -> Int
 solvePartOne rucksacks =
   rucksacks
     <#> (\{ before, after } -> [ before, after ])
-    <#> findIntersection
-    # concat
+    >>= findIntersection
     <#> priority
     # sum
 
@@ -59,8 +50,8 @@ solvePartTwo rucksacks =
     <#> priority
     # sum
 
-partOne :: String -> Either Error String
+partOne :: String -> String |? String
 partOne input = parsePartOne input # solvePartOne # show # Right
 
-partTwo :: String -> Either Error String
+partTwo :: String -> String |? String
 partTwo input = parsePartTwo input # solvePartTwo # show # Right

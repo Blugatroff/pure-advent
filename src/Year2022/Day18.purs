@@ -1,31 +1,26 @@
 module Year2022.Day18 (partOne, partTwo) where
 
-import Prelude
+import MeLude
 
 import Data.Array as Array
-import Data.Either (Either(..))
 import Data.List as List
 import Data.Map as M
-import Data.Maybe (Maybe(..), fromMaybe)
-import Data.Set (Set)
 import Data.Set as S
 import Data.String as String
-import Data.Traversable (maximum, minimum, traverse)
 import Data.Tuple (Tuple(..))
-import Effect.Exception (Error, error)
 import Util (bindMaybes, lines, parseInt)
 
 type Pos = { x :: Int, y :: Int, z :: Int }
 
-parseLine :: String -> Either Error Pos
+parseLine :: String -> String |? Pos
 parseLine s = String.split (String.Pattern ",") s
   <#> String.trim
   # traverse parseInt
   >>= case _ of
     [ x, y, z ] -> Right { x, y, z }
-    _ -> Left $ error $ "failed to parse "
+    _ -> Left "failed to parse "
 
-parse :: String -> Either Error (Set Pos)
+parse :: String -> String |? (Set Pos)
 parse input = lines input
   <#> String.trim
   # Array.filter (not <<< String.null)
@@ -59,15 +54,16 @@ fill cubes from = flow from S.empty
   flow { z } _ | z < minZ || z > maxZ = Nothing
   flow pos visited | S.member pos cubes = Just visited
   flow pos visited | S.member pos visited = Just visited
-  flow (pos@{ x, y, z }) visited = 
-    bindMaybes (S.insert pos visited) $ List.fromFoldable
-      [ flow { x: x + 1, y, z } 
+  flow (pos@{ x, y, z }) visited =
+    flip bindMaybes (S.insert pos visited) $ List.fromFoldable
+      [ flow { x: x + 1, y, z }
       , flow { x: x + 1, y, z }
       , flow { x: x - 1, y, z }
       , flow { x, y: y + 1, z }
       , flow { x, y: y - 1, z }
       , flow { x, y, z: z - 1 }
-      , flow { x, y, z: z + 1 } ]
+      , flow { x, y, z: z + 1 }
+      ]
 
   cubePositions :: Array Pos
   cubePositions = S.toUnfoldable cubes
@@ -97,8 +93,8 @@ solvePartTwo cubes = Array.length $ Array.filter (flip M.lookup lookup >>> fromM
     # map (\pos -> Tuple pos (fill cubes pos == Nothing))
     # M.fromFoldable
 
-partOne ∷ String → Either Error String
+partOne ∷ String → String |? String
 partOne input = parse input <#> solvePartOne <#> show
 
-partTwo ∷ String → Either Error String
+partTwo ∷ String → String |? String
 partTwo input = parse input <#> solvePartTwo <#> show

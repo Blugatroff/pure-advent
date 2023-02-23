@@ -1,74 +1,47 @@
 module Main (main) where
 
-import Prelude
+import MeLude
 
 import Control.Monad.Error.Class (liftEither, try)
-import Control.Monad.Except (ExceptT(..), runExceptT)
+import Control.Monad.Except (ExceptT(..), runExceptT, throwError)
 import Data.Array as Array
-import Data.Bifunctor (lmap)
-import Data.Either (Either(..))
-import Data.Foldable (for_)
-import Data.Function (on)
-import Data.FunctorWithIndex (mapWithIndex)
-import Data.List (List(..), (:))
-import Data.List as List
 import Data.Map as Map
-import Data.Maybe (Maybe(..))
-import Data.Tuple (Tuple(..), fst)
-import Day (Day(..), PartName(..))
-import Effect (Effect)
-import Effect.Class (liftEffect)
+import Data.Tuple (Tuple(..))
+import Day (Day(..), Index(..), PartName(..), YearName(..))
+import Dotenv as DotEnv
+import Effect.Aff (Aff, launchAff_)
 import Effect.Console as Console
-import Effect.Exception (Error, error, message)
+import Effect.Exception (message)
+import InputLoading (loadInput)
 import Node.Encoding (Encoding(..))
-import Node.FS.Sync (readTextFile)
-import Node.Process (argv, exit)
+import Node.FS.Aff (readTextFile)
+import Node.Process (exit)
+import Options.Applicative (Parser, ParserInfo, ReadM, argument, command, eitherReader, execParser, fullDesc, help, helper, info, int, long, metavar, option, progDesc, short, showDefault, str, subparser, value, (<**>))
 import Util (parseInt)
 import Year2022 as Year2022
 
-arrayToList :: forall a. Array a -> List a
-arrayToList array = List.fromFoldable array
-
 main :: Effect Unit
-main = do
-  args :: List String <- arrayToList <$> argv
-  arguments <- case parseArgs args of
-    Right arguments -> pure arguments
+main = launchAff_ do
+  DotEnv.loadFile
+  arguments <- liftEffect $ execParser parser
+  result <- runExceptT $ start arguments
+  liftEffect $ case result of
     Left error -> do
       Console.error error
-      Console.log ""
-      printHelp
-      exit 1
-  result <- runExceptT $ start arguments
-  case result of
-    Left errorMessage -> do
-      Console.error $ message errorMessage
       exit 1
     Right _ -> pure unit
 
-printHelp :: Effect Unit
-printHelp = do
-  Console.log "Advent of Code in Purescript"
-  Console.log "Usage:"
-  Console.log "    aoc all"
-  Console.log "    aoc <year> <day> [part] [OPTIONS]"
-  Console.log ""
-  Console.log "OPTIONS:"
-  Console.log "    -i, --input <file>"
-  Console.log "           Load the puzzle input from the specified file."
-
-start :: Arguments -> ExceptT Error Effect Unit
-start Help = liftEffect printHelp
+start :: Arguments -> ExceptT String Aff Unit
 start (RunDay year dayIndex partName file) = do
-  part <- case Map.lookup (unIndex dayIndex) Year2022.days of
+  part <- case Map.lookup dayIndex Year2022.days of
     Just (Day partOne partTwo) -> pure $ case partName of
       PartOne -> partOne
       PartTwo -> partTwo
-    Nothing -> liftEither $ Left $ error $ "The day " <> show dayIndex <> " does not exist! (yet?)"
+    Nothing -> throwError $ "The day " <> show dayIndex <> " does not exist! (yet?)"
 
   input <- case file of
-    Nothing -> ExceptT $ readInputFile $ buildPath year dayIndex
-    Just inputFile -> ExceptT $ readInputFile inputFile
+    Nothing -> ExceptT $ map (lmap message) $ try $ loadInput year dayIndex
+    Just inputFile -> ExceptT $ map (lmap message) $ try $ readTextFile UTF8 inputFile
 
   result <- liftEither $ part input
   liftEffect $ Console.log result
@@ -77,77 +50,56 @@ start RunAll = do
   for_ days $ \(Tuple i (Day partOne partTwo)) -> do
     liftEffect $ Console.log $ "Day " <> show i
 
-    input <- ExceptT $ readInputFile $ buildPath 2022 i
+    input <- ExceptT $ map (lmap message) $ try $ loadInput TheYear2022 i
 
-    resultPartOne <- liftEither $ partOne input
-    liftEffect $ Console.log $ resultPartOne
-
-    resultPartTwo <- liftEither $ partTwo input
-    liftEffect $ Console.log $ resultPartTwo
+    liftEffect $ Console.log $ either identity identity $ partOne input
+    liftEffect $ Console.log $ either identity identity $ partTwo input
 
     liftEffect $ Console.log ""
     pure unit
 
-readInputFile ∷ String → Effect (Either Error String)
-readInputFile path = (try $ readTextFile UTF8 path)
-  <#> lmap \e -> error $ "failed to read the input file: " <> message e
+data Arguments = RunDay YearName (Index Day) PartName (Maybe String) | RunAll
 
-buildPath :: forall year day. Show year => Show day => year -> day -> String
-buildPath year day = "." <> sep <> "inputs" <> sep <> show year <> sep <> show day <> ".txt"
+parser :: ParserInfo Arguments
+parser = info (commandsParser <**> helper) $ Array.fold
+  [ fullDesc
+  , progDesc "Advent of Code Solutions in Purescript"
+  ]
   where
-  sep = "/"
+  commandsParser :: Parser Arguments
+  commandsParser = subparser $ Array.fold
+    [ command "all" (info (pure RunAll <**> helper) $ progDesc "Run all solutions")
+    , command "run" (info (runDayParser <**> helper) $ progDesc "Run one particular solution")
+    ]
 
-data Index :: forall k. k -> Type
-data Index a = Index Int
+  runDayParser :: Parser Arguments
+  runDayParser = ado
+    year <- argument readYear $ metavar "year"
+    day <- argument int $ metavar "day"
+    part <- option readPart $ Array.fold
+      [ value PartOne
+      , showDefault
+      , help "Which part of the problem to solve"
+      , long "part"
+      , short 'p'
+      ]
+    input <- option (Just <$> str) $ Array.fold
+      [ value Nothing
+      , long "input"
+      , short 'i'
+      ]
+    in RunDay year (Index day) part input
 
-unIndex :: forall a. Index a -> Int
-unIndex (Index i) = i
+  readYear :: ReadM YearName
+  readYear = eitherReader $ \year -> case parseInt year of
+    Right 2022 -> Right TheYear2022
+    Right year -> Left $ "There are no Advent of Code Solutions for the Year " <> show year
+    _ -> Left $ "Can't parse as Year: `" <> year <> "`"
 
-instance showIndex :: Show (Index a) where
-  show (Index index) = show index
-
-data YearName = TheYear2022
-
-instance showYearName :: Show YearName where
-  show TheYear2022 = "2022"
-
-data Arguments = Help | RunDay YearName (Index Day) PartName (Maybe String) | RunAll
-
-setFile :: String -> Arguments -> Arguments
-setFile _ Help = Help
-setFile _ RunAll = RunAll
-setFile file (RunDay year day part _) = RunDay year day part (Just file)
-
-instance showArguments :: Show Arguments where
-  show Help = "Help"
-  show (RunDay year day part input) = "(RunDay " <> show year <> " " <> show day <> " " <> show part <> " " <> show input <> ")"
-  show RunAll = "RunAll"
-
-parseArgs :: List String -> Either String Arguments
-parseArgs = List.drop 2 >>> findFileArg
-  where
-  findFileArg :: List String -> Either String Arguments
-  findFileArg args =
-    let
-      { init, rest } = List.span (\s -> s /= "-i" && s /= "--input") args
-    in
-      case rest of
-        Nil -> inner args
-        (_ : Nil) -> Left "expected path to input file after '-p'"
-        (_ : path : rest) -> inner (init <> rest) <#> setFile path
-
-  inner ("help" : Nil) = Right Help
-  inner ("all" : Nil) = Right RunAll
-  inner (year : day : Nil) = inner (year : day : "one" : Nil)
-  inner ("2022" : dayIndex : partIndex : Nil) = do
-    day <- lmap message $ Index <$> parseInt dayIndex
-    part <- parsePart partIndex
-    Right $ RunDay TheYear2022 day part Nothing
-  inner args = Left $ "Unexpected Arguments: " <> (show $ Array.fromFoldable args)
-
-  parsePart :: String -> Either String PartName
-  parsePart "one" = Right PartOne
-  parsePart "1" = Right PartOne
-  parsePart "two" = Right PartTwo
-  parsePart "2" = Right PartTwo
-  parsePart s = Left $ "\"" <> s <> "\" is not a valid part, use 'one', 'two', '1' or '2'"
+  readPart :: ReadM PartName
+  readPart = eitherReader $ case _ of
+    "one" -> Right PartOne
+    "1" -> Right PartOne
+    "two" -> Right PartTwo
+    "2" -> Right PartTwo
+    part -> Left $ "Can't parse as Part: `" <> part <> "` use `one`, `two`, `1` or  `2`"

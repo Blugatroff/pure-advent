@@ -1,20 +1,13 @@
 module Year2022.Day5 (partOne, partTwo) where
 
-import Prelude
+import MeLude
 
 import Data.Array as Array
-import Data.Either (Either(..))
-import Data.FunctorWithIndex (mapWithIndex)
-import Data.List (List)
 import Data.List as List
 import Data.Map as M
-import Data.Maybe (Maybe(..))
 import Data.String (Replacement(..), Pattern(..))
 import Data.String as String
-import Data.String.CodeUnits (fromCharArray, toCharArray)
 import Data.Traversable (foldl, traverse)
-import Data.Tuple (Tuple(..))
-import Effect.Exception (Error, error)
 import Util (lines, parseInt, splitOnce)
 
 transposeStacks :: Array String -> Array Stack
@@ -36,7 +29,7 @@ type Move = { amount :: Int, source :: Int, destination :: Int }
 parseStacks :: Array (Array Char) -> Array Stack
 parseStacks lines = lines <#> Array.drop 1 <#> Array.reverse
 
-parseMove :: String -> Either Error Move
+parseMove :: String -> String |? Move
 parseMove line = line
   # String.replace (Pattern "move") (Replacement "")
   # String.replace (Pattern "from") (Replacement "")
@@ -46,18 +39,18 @@ parseMove line = line
   # traverse parseInt
   >>= case _ of
     [ amount, source, destination ] -> Right { amount, source, destination }
-    _ -> Left $ error $ "Failed to parse move from line: " <> line
+    _ -> Left $ "Failed to parse move from line: " <> line
 
-parseMoves :: List String -> Either Error (List Move)
+parseMoves :: List String -> String |? (List Move)
 parseMoves = List.filter (notEq "") >>> traverse parseMove
 
-parse :: String -> Either Error (Tuple (M.Map Int Stack) (List Move))
+parse :: String -> String |? (M.Map Int Stack /\ List Move)
 parse input = case splitOnce "" $ List.fromFoldable $ lines input of
-  Nothing -> Left $ error "failed to find seperation between stacks and moves"
-  Just (Tuple stacks s) -> do
+  Nothing -> Left "failed to find seperation between stacks and moves"
+  Just (stacks /\ s) -> do
     moves <- parseMoves s
-    let stackMap = M.fromFoldable $ mapWithIndex (\i v -> Tuple (i + 1) v) $ parseStacks $ (transposeStacks $ Array.fromFoldable stacks)
-    pure $ Tuple stackMap moves
+    let stackMap = M.fromFoldable $ mapWithIndex (\i v -> (i + 1) /\ v) $ parseStacks $ (transposeStacks $ Array.fromFoldable stacks)
+    pure $ stackMap /\ moves
 
 applyMove :: (Array Char -> Array Char) -> M.Map Int Stack -> Move -> M.Map Int Stack
 applyMove reverseOrNot stacks move = case M.lookup move.source stacks, M.lookup move.destination stacks of
@@ -69,21 +62,21 @@ applyMove reverseOrNot stacks move = case M.lookup move.source stacks, M.lookup 
 onTop :: M.Map Int Stack -> String
 onTop stacks = (M.values stacks >>= (Array.take 1 >>> List.fromFoldable)) # Array.fromFoldable # fromCharArray
 
-solve :: (Array Char -> Array Char) -> Tuple (M.Map Int Stack) (List Move) -> String
-solve reverseOrNot (Tuple stacks moves) = onTop outputStacks
+solve :: (Array Char -> Array Char) -> M.Map Int Stack /\ List Move -> String
+solve reverseOrNot (stacks /\ moves) = onTop outputStacks
   where
-  folder (Tuple i s) move = Tuple (i + 1) (applyMove reverseOrNot s move)
+  folder (i /\ s) move = (i + 1) /\ applyMove reverseOrNot s move
 
-  (Tuple _ outputStacks) = foldl folder (Tuple 0 stacks) moves
+  (_ /\ outputStacks) = foldl folder (0 /\ stacks) moves
 
-solvePartOne :: Tuple (M.Map Int Stack) (List Move) -> String
+solvePartOne :: M.Map Int Stack /\ List Move -> String
 solvePartOne = solve Array.reverse
 
-solvePartTwo :: Tuple (M.Map Int Stack) (List Move) -> String
+solvePartTwo :: M.Map Int Stack /\ List Move -> String
 solvePartTwo = solve identity
 
-partOne :: String -> Either Error String
+partOne :: String -> String |? String
 partOne input = parse input <#> solvePartOne
 
-partTwo :: String -> Either Error String
+partTwo :: String -> String |? String
 partTwo input = parse input <#> solvePartTwo

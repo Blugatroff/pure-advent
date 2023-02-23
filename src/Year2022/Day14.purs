@@ -1,20 +1,15 @@
 module Year2022.Day14 (partOne, partTwo) where
 
-import Prelude
+import MeLude
 
 import Control.Monad.Rec.Class (Step(..), tailRecM)
-import Control.Monad.ST (ST)
 import Control.Monad.ST as ST
 import Data.Array as Array
-import Data.Either (Either(..))
 import Data.List as List
 import Data.Map.ST.Int (IntMap)
 import Data.Map.ST.Int as IntMap
-import Data.Maybe (Maybe(..), fromMaybe)
 import Data.String as String
-import Data.Traversable (class Foldable, for, for_, maximum, minimum, traverse)
-import Data.Tuple (Tuple(..), fst, snd)
-import Effect.Exception (Error, error)
+import Data.Traversable (for, minimum)
 import Util (lines, parseInt, splitStringOnce, windows2)
 
 type Pos = { x :: Int, y :: Int }
@@ -29,19 +24,19 @@ instance showBlock :: Show Block where
 
 derive instance eqBlock :: Eq Block
 
-parsePath ∷ String → Either Error (Array Pos)
+parsePath ∷ String → Either String (Array Pos)
 parsePath line =
   String.split (String.Pattern "->") line
     <#> String.trim
     <#> splitStringOnce ","
     # traverse case _ of
-        Just (Tuple x y) -> do
+        Just (x /\ y) -> do
           x <- parseInt x
           y <- parseInt y
           Right { x, y }
-        Nothing -> Left $ error $ "failed to parse path: " <> line
+        Nothing -> Left $ "failed to parse path: " <> line
 
-parse ∷ String → Either Error (Array (Array Pos))
+parse ∷ String → Either String (Array (Array Pos))
 parse input = lines input <#> String.trim # Array.filter (not <<< String.null) # traverse parsePath
 
 data Cave r = Cave (IntMap r (IntMap r Block))
@@ -63,12 +58,12 @@ caveInsert { x, y } block (Cave columns) = do
       void $ IntMap.insert y block column
       void $ IntMap.insert x column columns
 
-caveEntries :: forall r. Cave r -> ST r (Array (Tuple Pos Block))
+caveEntries :: forall r. Cave r -> ST r (Array (Pos /\ Block))
 caveEntries (Cave columns) = Array.concat <$> do
   columns <- IntMap.entries columns
-  for columns \(Tuple x column) -> do
+  for columns \(x /\ column) -> do
     cells <- IntMap.entries column
-    pure $ (\(Tuple y block) -> Tuple { x, y } block) <$> cells
+    pure $ (\(y /\ block) -> { x, y } /\ block) <$> cells
 
 insertStone :: forall r. Pos -> Pos -> Cave r -> ST r Unit
 insertStone { x: x1, y: y1 } { x: x2, y: y2 } cave | y1 == y2 = for_ (Array.range x1 x2) $ \x -> caveInsert { x, y: y1 } Stone cave
@@ -77,7 +72,7 @@ insertStone _ _ _ = pure unit
 
 insertPath :: forall r. Path -> Cave r -> ST r Unit
 insertPath path cave = for_ (windows2 $ List.fromFoldable path)
-  \(Tuple from to) -> insertStone from to cave
+  \(from /\ to) -> insertStone from to cave
 
 insertPaths ∷ forall f r. Foldable f => f (Array Pos) → Cave r → ST r Unit
 insertPaths paths cave = for_ paths \path -> insertPath path cave
@@ -138,8 +133,6 @@ drawCave cave = do
   findDimension key extreme = caveEntries cave
     >>= \entries -> pure $ fromMaybe 0 $ extreme $ key <$> fst <$> entries
 
-
-
 solvePartOne :: forall f. Foldable f => f Path -> String
 solvePartOne paths = ST.run do
   cave <- caveEmpty
@@ -166,8 +159,8 @@ solvePartTwo paths = ST.run do
     Just _ -> pure $ Done n
     Nothing -> simulateSand floor { x: 500, y: 0 } cave $> Loop (n + 1)
 
-partOne ∷ String → Either Error String
+partOne ∷ String → Either String String
 partOne = parse >>> map solvePartOne
 
-partTwo ∷ String → Either Error String
+partTwo ∷ String → Either String String
 partTwo = parse >>> map solvePartTwo >>> map show

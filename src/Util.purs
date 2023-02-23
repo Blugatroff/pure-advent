@@ -5,50 +5,48 @@ module Util
   , chunks
   , dedup
   , filterString
+  , fromBigInt
   , indexed
   , lines
   , mapFst
   , mapSnd
   , mapTrace
   , mapWithPrevious
+  , newline
   , pairs
   , parseInt
   , reduceL
   , reduceR
   , sign
+  , space
   , split
   , splitAt
   , splitOnce
   , splitStringOnce
+  , tailRec0
   , trace
   , windows
   , windows2
-  )
-  where
+  ) where
 
-import Prelude
+import MeLude
 
+import Control.Monad.Rec.Class (class MonadRec, Step, tailRecM)
 import Data.Array as Array
-import Data.Either (Either(..))
-import Data.Foldable (class Foldable)
-import Data.FunctorWithIndex (class FunctorWithIndex, mapWithIndex)
 import Data.Int as Int
-import Data.List (List(..), reverse, (:))
 import Data.List as List
-import Data.Maybe (Maybe(..))
 import Data.Set as S
 import Data.String as String
-import Data.String.CodeUnits (fromCharArray, toCharArray)
-import Data.Tuple (Tuple(..))
-import Data.Unfoldable (class Unfoldable)
-import Effect (Effect)
 import Effect.Console as Console
-import Effect.Exception (Error, error)
 import Effect.Unsafe (unsafePerformEffect)
+import Js.BigInt.BigInt (BigInt)
+import Parsing as Parsing
+import Parsing.Combinators as ParsingCombinators
+import Parsing.String as ParsingString
 
-parseInt :: String -> Either Error Int
+parseInt ∷ String → Either String Int
 parseInt s = case Int.fromString s of
-  Nothing -> Left $ error $ s <> " is not an int"
+  Nothing -> Left $ "failed to parse '" <> s <> "'"
   Just n -> Right n
 
 trace :: forall a. Show a => String -> a -> a
@@ -68,14 +66,14 @@ split del list = f $ List.span (notEq del) list
   f { init: seg, rest: Nil } = List.singleton seg
   f { init: seg, rest: (_ : rest) } = seg : split del rest
 
-splitOnce :: forall a. Eq a => a -> List a -> Maybe (Tuple (List a) (List a))
+splitOnce :: forall a. Eq a => a -> List a -> Maybe (List a /\ List a)
 splitOnce del list = case split del list of
-  (a : b : Nil) -> Just $ Tuple a b
+  (a : b : Nil) -> Just $ a /\ b
   _ -> Nothing
 
-splitStringOnce :: String -> String -> Maybe (Tuple String String)
+splitStringOnce :: String -> String -> Maybe (String /\ String)
 splitStringOnce del s = case String.split (String.Pattern del) s of
-  [ a, b ] -> Just $ Tuple a b
+  [ a, b ] -> Just $ a /\ b
   _ -> Nothing
 
 lines :: String -> Array String
@@ -92,13 +90,13 @@ reduceL fold (first : rest) = Just $ List.foldl fold first rest
 chunks :: forall a. Int -> List a -> List (List a)
 chunks _ Nil = Nil
 chunks size list = case splitAt size list of
-  Tuple chunk rest -> chunk : chunks size rest
+  chunk /\ rest -> chunk : chunks size rest
 
-splitAt :: forall a. Int -> List a -> Tuple (List a) (List a)
-splitAt index list = Tuple (List.take index list) (List.drop index list)
+splitAt :: forall a. Int -> List a -> List a /\ List a
+splitAt index list = List.take index list /\ List.drop index list
 
-indexed :: forall index f a. FunctorWithIndex index f => f a -> f (Tuple index a)
-indexed = mapWithIndex Tuple
+indexed :: forall index f a. FunctorWithIndex index f => f a -> f (index /\ a)
+indexed = mapWithIndex (/\)
 
 sign :: Int -> Int
 sign 0 = 0
@@ -106,41 +104,41 @@ sign n | n < 0 = -1
 sign _ = 1
 
 mapWithPrevious :: forall a b. (b -> a -> b) -> b -> List a -> List b
-mapWithPrevious f init list = reverse $ inner init Nil list
+mapWithPrevious f init list = List.reverse $ inner init Nil list
   where
   inner :: b -> List b -> List a -> List b
   inner _ acc Nil = acc
   inner previous acc (x : xs) = let v = f previous x in inner v (v : acc) xs
 
-mapFst :: forall a b c. (a -> c) -> Tuple a b -> Tuple c b
-mapFst f (Tuple a b) = Tuple (f a) b
+mapFst :: forall a b c. (a -> c) -> a /\ b -> c /\ b
+mapFst f (a /\ b) = f a /\ b
 
-mapSnd :: forall a b c. (b -> c) -> Tuple a b -> Tuple a c
-mapSnd f (Tuple a b) = Tuple a (f b)
+mapSnd :: forall a b c. (b -> c) -> a /\ b -> a /\ c
+mapSnd f (a /\ b) = a /\ f b
 
 dedup :: forall fi fo v. Foldable fi => Ord v => Unfoldable fo => fi v -> fo v
 dedup = S.fromFoldable >>> S.toUnfoldable
 
-pairs :: forall a. List a -> List (Tuple a a)
+pairs :: forall a. List a -> List (a /\ a)
 pairs list = chunks 2 list >>= case _ of
-  (a : b : List.Nil) -> List.singleton $ Tuple a b
+  (a : b : List.Nil) -> List.singleton $ a /\ b
   _ -> List.Nil
 
 windows :: forall a. Int -> List a -> List (List a)
 windows _ Nil = Nil
 windows size list = List.take size list : windows size (List.drop 1 list)
 
-windows2 :: forall a. List a -> List (Tuple a a)
+windows2 :: forall a. List a -> List (a /\ a)
 windows2 l = List.zip l $ List.drop 1 l
 
 foreign import performanceNow :: Effect Number
 
-bench :: forall a b. (a -> b) -> a -> Effect (Tuple Number b)
+bench :: forall a b. (a -> b) -> a -> Effect (Number /\ b)
 bench f a = do
   before <- performanceNow
   b <- pure $ f a
   after <- performanceNow
-  pure $ Tuple (after - before) b
+  pure $ (after - before) /\ b
 
 filterString :: (Char -> Boolean) -> String -> String
 filterString f = toCharArray >>> Array.filter f >>> fromCharArray
@@ -150,8 +148,21 @@ data TransparentString = TransparentString String
 instance showTransparentString :: Show TransparentString where
   show (TransparentString s) = s
 
-bindMaybes :: forall a. a -> List (a -> Maybe a) -> Maybe a
-bindMaybes _ List.Nil = Nothing
-bindMaybes a (x:xs) = case x a of
+foreign import fromBigIntImpl :: (forall a. Maybe a) -> (forall a. a -> Maybe a) -> BigInt -> Maybe Int
+
+fromBigInt :: BigInt -> Maybe Int
+fromBigInt = fromBigIntImpl Nothing Just
+
+bindMaybes :: forall a. List (a -> Maybe a) -> a -> Maybe a
+bindMaybes List.Nil a = Just a
+bindMaybes (f : fs) a = case f a of
   Nothing -> Nothing
-  Just a -> bindMaybes a xs
+  Just a -> bindMaybes fs a
+
+newline ∷ forall m. Parsing.ParserT String m Unit
+newline = ParsingCombinators.choice [ void $ ParsingString.char '\n', void $ ParsingString.string "\r\n" ]
+
+space = void $ ParsingString.char ' '
+
+tailRec0 :: forall m a. MonadRec m => m (Step Unit a) -> m a
+tailRec0 m = tailRecM (const m) unit

@@ -1,19 +1,11 @@
 module Year2022.Day10 (partOne, partTwo) where
 
-import Prelude
+import MeLude
 
 import Data.Array as Array
-import Data.Either (Either(..))
-import Data.Foldable (class Foldable, sum)
-import Data.List (List, (:))
 import Data.List as List
 import Data.Map as M
-import Data.Maybe (Maybe(..))
 import Data.String as String
-import Data.String.CodeUnits (fromCharArray)
-import Data.Traversable (traverse)
-import Data.Tuple (Tuple(..))
-import Effect.Exception (Error, error)
 import Util (lines, parseInt, splitStringOnce)
 
 data Instruction = AddX Int | NoOp
@@ -24,14 +16,14 @@ instance showInstruction :: Show Instruction where
   show NoOp = "NoOp"
   show (AddX n) = "(AddX " <> show n <> ")"
 
-parseLine :: String -> Either Error Instruction
+parseLine :: String -> String |? Instruction
 parseLine "noop" = Right NoOp
 parseLine line = case splitStringOnce " " line of
-  Nothing -> Left $ error $ "failed to parse line: " <> line
-  Just (Tuple "addx" argument) -> parseInt argument <#> AddX
-  Just (Tuple instruction _) -> Left $ error $ "unknown instruction: " <> instruction
+  Nothing -> Left $ "failed to parse line: " <> line
+  Just ("addx" /\ argument) -> parseInt argument <#> AddX
+  Just (instruction /\ _) -> Left $ "unknown instruction: " <> instruction
 
-parse :: String -> Either Error (Array Instruction)
+parse :: String -> String |? Array Instruction
 parse input = lines input <#> String.trim # Array.filter (not <<< String.null) # traverse parseLine
 
 data CpuState = Idle | Adding { cyclesLeft :: Int, value :: Int }
@@ -73,16 +65,17 @@ solvePartOne instructions = sum $ runCpu sample List.Nil cpu
     if cpu.cycleNumber `Array.elem` samplePoints then (cpu.xRegister * cpu.cycleNumber) : samples
     else samples
 
-type Crt = M.Map (Tuple Int Int) Boolean
+type Crt = M.Map (Int /\ Int) Boolean
 
 crtWidth = 40
 crtHeight = 6
 
 drawCrt :: Crt -> String
-drawCrt crt = Array.intercalate "\n" $
-  Array.range 0 (crtHeight - 1) <#> \y ->
+drawCrt crt = Array.intercalate "\n"
+  $ Array.range 0 (crtHeight - 1)
+  <#> \y ->
     fromCharArray $ Array.range 0 (crtWidth - 1) <#> \x ->
-      case M.lookup (Tuple x y) crt of
+      case M.lookup (x /\ y) crt of
         Nothing -> '.'
         Just true -> '#'
         Just false -> '.'
@@ -91,14 +84,14 @@ solvePartTwo :: forall f. Foldable f => f Instruction -> String
 solvePartTwo instructions = drawCrt $ runCpu sample M.empty cpu
   where
   cpu = Cpu { state: Idle, xRegister: 1, cycleNumber: 0, instructions: List.fromFoldable instructions }
-  sample (Cpu cpu) crt = M.insert (Tuple x y) value crt
+  sample (Cpu cpu) crt = M.insert (x /\ y) value crt
     where
     x = (cpu.cycleNumber - 1) `mod` crtWidth
     y = (cpu.cycleNumber - 1) `div` crtWidth
     value = (x >= (cpu.xRegister - 1)) && (x <= (cpu.xRegister + 1))
 
-partOne :: String -> Either Error String
+partOne :: String -> String |? String
 partOne input = parse input <#> solvePartOne <#> show
 
-partTwo :: String -> Either Error String
+partTwo :: String -> String |? String
 partTwo input = parse input <#> solvePartTwo

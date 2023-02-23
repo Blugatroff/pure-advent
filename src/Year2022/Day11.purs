@@ -1,22 +1,15 @@
 module Year2022.Day11 (partOne, partTwo) where
 
-import Prelude
+import MeLude
 
 import Control.Monad.Rec.Class (Step(..), tailRecM2)
 import Control.Monad.State (State, execState, get, modify_)
 import Data.Array as Array
-import Js.BigInt.BigInt (BigInt, fromInt)
 import Data.CodePoint.Unicode (isDecDigit)
-import Data.Either (Either(..))
-import Data.Foldable (for_, product)
-import Data.List (List, (:))
 import Data.List as List
 import Data.Map as M
-import Data.Maybe (Maybe(..))
 import Data.String as String
-import Data.Traversable (traverse)
-import Data.Tuple (Tuple(..))
-import Effect.Exception (Error, error)
+import Js.BigInt.BigInt (BigInt, fromInt)
 import Util (indexed, lines, parseInt, splitStringOnce)
 
 data OperationArgument = OldValue | Number BigInt
@@ -33,7 +26,7 @@ type Monkey =
   , inspectionCount :: BigInt
   }
 
-parseMonkey :: String -> Either Error Monkey
+parseMonkey :: String -> String |? Monkey
 parseMonkey input = case lines input <#> String.trim # Array.filter (not <<< String.null) of
   [ _, items, operation, test, ifTrue, ifFalse ] -> do
     items <- parseItems items
@@ -42,32 +35,32 @@ parseMonkey input = case lines input <#> String.trim # Array.filter (not <<< Str
     onTrue <- String.toCodePointArray ifTrue # Array.filter isDecDigit # String.fromCodePointArray # parseInt
     onFalse <- String.toCodePointArray ifFalse # Array.filter isDecDigit # String.fromCodePointArray # parseInt
     pure { items, operation, test, actions: { onTrue, onFalse }, inspectionCount: fromInt 0 }
-  _ -> Left $ error $ "failed to parse monkey: " <> input
+  _ -> Left $ "failed to parse monkey: " <> input
 
-parseItems :: String -> Either Error (Array BigInt)
+parseItems :: String -> String |? Array BigInt
 parseItems line = case splitStringOnce ":" line of
-  Nothing -> Left $ error $ "failed to parse items: " <> line
-  Just (Tuple _ items) ->
+  Nothing -> Left $ "failed to parse items: " <> line
+  Just (_ /\ items) ->
     String.split (String.Pattern ",") items
       <#> String.trim
       # Array.filter (not <<< String.null)
       # traverse parseInt
       <#> map fromInt
 
-parseOperation :: String -> Either Error Operation
-parseOperation line = case (Tuple (splitStringOnce "*" line) (splitStringOnce "+" line)) of
-  (Tuple Nothing Nothing) -> Left $ error $ "failed to parse operation: " <> line
-  (Tuple (Just (Tuple _ right)) _) -> case String.trim right of
+parseOperation :: String -> String |? Operation
+parseOperation line = case splitStringOnce "*" line, splitStringOnce "+" line of
+  Nothing, Nothing -> Left $ "failed to parse operation: " <> line
+  Just (_ /\ right), _ -> case String.trim right of
     "old" -> Right $ Multiply OldValue
     number -> Multiply <<< Number <$> fromInt <$> parseInt (String.trim number)
-  (Tuple _ (Just (Tuple _ right))) -> case String.trim right of
+  _, (Just (_ /\ right)) -> case String.trim right of
     "old" -> Right $ Add OldValue
     number -> Add <<< Number <$> fromInt <$> parseInt (String.trim number)
 
-parseTest :: String -> Either Error BigInt
+parseTest :: String -> String |? BigInt
 parseTest = String.toCodePointArray >>> Array.filter isDecDigit >>> String.fromCodePointArray >>> parseInt >>> map fromInt
 
-parse :: String -> Either Error (Array Monkey)
+parse :: String -> String |? Array Monkey
 parse = String.replaceAll (String.Pattern "\r") (String.Replacement "")
   >>> String.split (String.Pattern "\n\n")
   >>> traverse parseMonkey
@@ -139,8 +132,8 @@ solvePartTwo monkeys =
   where
   modBase = monkeys <#> _.test # product
 
-partOne :: String -> Either Error String
+partOne :: String -> String |? String
 partOne input = parse input <#> indexed <#> M.fromFoldable <#> solvePartOne <#> show
 
-partTwo :: String -> Either Error String
+partTwo :: String -> String |? String
 partTwo input = parse input <#> indexed <#> M.fromFoldable <#> solvePartTwo <#> show
