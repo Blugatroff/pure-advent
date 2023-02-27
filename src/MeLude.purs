@@ -70,7 +70,7 @@ import Data.EuclideanRing (class EuclideanRing, div, mod)
 import Data.Boolean (otherwise)
 import Data.FunctorWithIndex (class FunctorWithIndex, mapWithIndex)
 import Data.Semigroup (class Semigroup, append)
-import Data.Traversable (class Traversable, foldl, traverse, any, minimum, sequence_, traverse_)
+import Data.Traversable (class Traversable, foldl, traverse, any, minimum, sequence_, traverse_, for)
 import Data.Ordering (Ordering(..))
 
 import Effect (Effect)

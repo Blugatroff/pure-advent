@@ -25,9 +25,11 @@ module Util
   , splitStringOnce
   , tailRec0
   , trace
+  , tuplePermutations
   , windows
   , windows2
-  ) where
+  )
+  where
 
 import MeLude
 
@@ -40,6 +42,7 @@ import Data.String as String
 import Effect.Console as Console
 import Effect.Unsafe (unsafePerformEffect)
 import Js.BigInt.BigInt (BigInt)
+import Parsing (ParserT)
 import Parsing as Parsing
 import Parsing.Combinators as ParsingCombinators
 import Parsing.String as ParsingString
@@ -162,7 +165,15 @@ bindMaybes (f : fs) a = case f a of
 newline ∷ forall m. Parsing.ParserT String m Unit
 newline = ParsingCombinators.choice [ void $ ParsingString.char '\n', void $ ParsingString.string "\r\n" ]
 
+space ∷ ∀ m. ParserT String m Unit
 space = void $ ParsingString.char ' '
 
 tailRec0 :: forall m a. MonadRec m => m (Step Unit a) -> m a
 tailRec0 m = tailRecM (const m) unit
+
+tuplePermutations :: forall f a. Foldable f => f a -> Array (a /\ a)
+tuplePermutations = 
+  Array.fromFoldable >>> \items -> 
+    indexed items >>= \(i /\ item1) ->
+      let f = \(j /\ item2) -> if i /= j && j <= i then Just (item1 /\ item2) else Nothing
+      in Array.mapMaybe f $ indexed items

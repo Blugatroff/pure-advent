@@ -3,7 +3,6 @@ module Year2022.Day1 (partOne, partTwo) where
 import MeLude
 
 import Data.Array as Array
-import Data.Maybe (fromMaybe)
 import Parsing (Parser, runParser)
 import Parsing.Combinators (many, optional)
 import Parsing.Combinators.Array (many1)

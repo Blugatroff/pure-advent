@@ -5,10 +5,8 @@ import MeLude
 import Data.Array as Array
 import Data.List (drop, filter, fromFoldable, head, reverse, sort)
 import Data.Map as M
-import Data.Ord (greaterThanOrEq, lessThanOrEq)
 import Data.String (Pattern(..), trim)
 import Data.String as String
-import Data.Traversable (foldl, traverse)
 import Util (parseInt, splitStringOnce)
 
 data CdTarget = TargetUp | TargetRoot | TargetDown String

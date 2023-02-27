@@ -4,7 +4,6 @@ import MeLude
 
 import Data.Array as Array
 import Data.String (trim)
-import Data.Traversable (traverse)
 import Data.Tuple (uncurry)
 import Util (lines, parseInt, splitStringOnce)
 

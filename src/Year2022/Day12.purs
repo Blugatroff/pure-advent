@@ -4,7 +4,6 @@ import MeLude
 
 import Data.Array as Array
 import Data.CodePoint.Unicode (isAsciiLower)
-import Data.Either (note)
 import Data.Enum (fromEnum)
 import Data.Map as M
 import Data.String as String

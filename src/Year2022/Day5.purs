@@ -7,7 +7,6 @@ import Data.List as List
 import Data.Map as M
 import Data.String (Replacement(..), Pattern(..))
 import Data.String as String
-import Data.Traversable (foldl, traverse)
 import Util (lines, parseInt, splitOnce)
 
 transposeStacks :: Array String -> Array Stack

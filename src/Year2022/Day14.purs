@@ -9,7 +9,6 @@ import Data.List as List
 import Data.Map.ST.Int (IntMap)
 import Data.Map.ST.Int as IntMap
 import Data.String as String
-import Data.Traversable (for, minimum)
 import Util (lines, parseInt, splitStringOnce, windows2)
 
 type Pos = { x :: Int, y :: Int }
