@@ -12,6 +12,8 @@ import Dotenv as DotEnv
 import Effect.Aff (Aff, launchAff_)
 import Effect.Console as Console
 import Effect.Exception (message)
+import Effect.Now as Now
+import Data.DateTime.Instant as Instant
 import InputLoading (loadInput)
 import Node.Encoding (Encoding(..))
 import Node.FS.Aff (readTextFile)
@@ -42,8 +44,14 @@ start (RunDay year dayIndex partName file) = do
   input <- case file of
     Nothing -> ExceptT $ map (lmap message) $ try $ loadInput year dayIndex
     Just inputFile -> ExceptT $ map (lmap message) $ try $ readTextFile UTF8 inputFile
-
+  
+  start <- liftEffect $ unwrap <<< Instant.unInstant <$> Now.now
   result <- liftEither $ part input
+  end <- liftEffect $ unwrap <<< Instant.unInstant <$> Now.now
+
+  let duration = end - start
+  liftEffect $ Console.log $ "Day " <> show dayIndex <> ": " <> result <> "\ntook: " <> show duration <> "ms"
+
   liftEffect $ Console.log result
 start RunAll = do
   let days = Array.sortBy (compare `on` fst) $ Map.toUnfoldable Year2022.days
