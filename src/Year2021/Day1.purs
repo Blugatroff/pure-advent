@@ -25,8 +25,8 @@ parse = lmap show <<< flip runParser parser
 solvePartOne :: forall f. Foldable f => NonEmpty f Int -> Int
 solvePartOne (head :| rest) = snd $ foldl fold (head /\ 0) rest
   where
-    fold (p /\ c) v | v > p = v /\ (c + 1)
-    fold (_ /\ c) v = v /\ c
+  fold (p /\ c) v | v > p = v /\ (c + 1)
+  fold (_ /\ c) v = v /\ c
 
 solvePartTwo :: NonEmpty List Int -> Int
 solvePartTwo = solvePartOne <<< map sum <<< windowsNonEmpty 3
@@ -39,4 +39,3 @@ nonEmptyArrayToList (NonEmpty a arr) = NonEmpty a $ List.fromFoldable arr
 
 partTwo :: String -> String |? String
 partTwo input = parse input <#> nonEmptyArrayToList <#> solvePartTwo <#> show
-
