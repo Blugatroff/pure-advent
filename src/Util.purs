@@ -12,6 +12,7 @@ module Util
   , mapSnd
   , mapTrace
   , mapWithPrevious
+  , mergeEither
   , newline
   , pairs
   , parseInt
@@ -28,6 +29,7 @@ module Util
   , tuplePermutations
   , windows
   , windows2
+  , windowsNonEmpty
   )
   where
 
@@ -37,6 +39,7 @@ import Control.Monad.Rec.Class (class MonadRec, Step, tailRecM)
 import Data.Array as Array
 import Data.Int as Int
 import Data.List as List
+import Data.NonEmpty (NonEmpty(..))
 import Data.Set as S
 import Data.String as String
 import Effect.Console as Console
@@ -134,6 +137,10 @@ windows size list = List.take size list : windows size (List.drop 1 list)
 windows2 :: forall a. List a -> List (a /\ a)
 windows2 l = List.zip l $ List.drop 1 l
 
+windowsNonEmpty :: forall a. Int -> NonEmpty List a -> NonEmpty List (List a)
+windowsNonEmpty size (NonEmpty head List.Nil) = NonEmpty (List.singleton head) List.Nil
+windowsNonEmpty size (NonEmpty head tail) = NonEmpty (head:List.take (size - 1) tail) (windows size tail)
+
 foreign import performanceNow :: Effect Number
 
 bench :: forall a b. (a -> b) -> a -> Effect (Number /\ b)
@@ -177,3 +184,7 @@ tuplePermutations =
     indexed items >>= \(i /\ item1) ->
       let f = \(j /\ item2) -> if i /= j && j <= i then Just (item1 /\ item2) else Nothing
       in Array.mapMaybe f $ indexed items
+
+mergeEither :: forall a. Either a a -> a
+mergeEither (Left a) = a
+mergeEither (Right a) = a

@@ -10,6 +10,7 @@ import Data.Tuple (Tuple(..))
 import Day (Day(..), Index(..), PartName(..), YearName(..))
 import Dotenv as DotEnv
 import Effect.Aff (Aff, launchAff_)
+import Effect.Class (class MonadEffect)
 import Effect.Console as Console
 import Effect.Exception (message)
 import Effect.Now as Now
@@ -19,7 +20,8 @@ import Node.Encoding (Encoding(..))
 import Node.FS.Aff (readTextFile)
 import Node.Process (exit)
 import Options.Applicative (Parser, ParserInfo, ReadM, argument, command, eitherReader, execParser, fullDesc, help, helper, info, int, long, metavar, option, progDesc, short, showDefault, str, subparser, value, (<**>))
-import Util (parseInt)
+import Util (mergeEither, parseInt)
+import Year2021 as Year2021
 import Year2022 as Year2022
 
 main :: Effect Unit
@@ -35,7 +37,10 @@ main = launchAff_ do
 
 start :: Arguments -> ExceptT String Aff Unit
 start (RunDay year dayIndex partName file) = do
-  part <- case Map.lookup dayIndex Year2022.days of
+  let days = (case year of
+             TheYear2021 -> Year2021.days
+             TheYear2022 -> Year2022.days)
+  part <- case Map.lookup dayIndex days of
     Just (Day partOne partTwo) -> pure $ case partName of
       PartOne -> partOne
       PartTwo -> partTwo
@@ -44,15 +49,8 @@ start (RunDay year dayIndex partName file) = do
   input <- case file of
     Nothing -> ExceptT $ map (lmap message) $ try $ loadInput year dayIndex
     Just inputFile -> ExceptT $ map (lmap message) $ try $ readTextFile UTF8 inputFile
-  
-  start <- liftEffect $ unwrap <<< Instant.unInstant <$> Now.now
-  result <- liftEither $ part input
-  end <- liftEffect $ unwrap <<< Instant.unInstant <$> Now.now
-
-  let duration = end - start
-  liftEffect $ Console.log $ "Day " <> show dayIndex <> ": " <> result <> "\ntook: " <> show duration <> "ms"
-
-  liftEffect $ Console.log result
+  result /\ duration <- measureRuntime (liftEither <<< part) input
+  liftEffect $ Console.log $ result <> "\nTook " <> show duration <> "ms"
 start RunAll = do
   let days = Array.sortBy (compare `on` fst) $ Map.toUnfoldable Year2022.days
   for_ days $ \(Tuple i (Day partOne partTwo)) -> do
@@ -60,11 +58,19 @@ start RunAll = do
 
     input <- ExceptT $ map (lmap message) $ try $ loadInput TheYear2022 i
 
-    liftEffect $ Console.log $ either identity identity $ partOne input
-    liftEffect $ Console.log $ either identity identity $ partTwo input
+    liftEffect $ Console.log $ mergeEither $ partOne input
+    liftEffect $ Console.log $ mergeEither $ partTwo input
 
     liftEffect $ Console.log ""
     pure unit
+
+measureRuntime :: forall m a b. MonadEffect m => (a -> m b) -> a -> m (b /\ Number)
+measureRuntime computation a = do
+  start <- liftEffect $ unwrap <<< Instant.unInstant <$> Now.now
+  result <- computation a
+  end <- liftEffect $ unwrap <<< Instant.unInstant <$> Now.now
+  let duration = end - start
+  pure $ result /\ duration
 
 data Arguments = RunDay YearName (Index Day) PartName (Maybe String) | RunAll
 
@@ -100,6 +106,7 @@ parser = info (commandsParser <**> helper) $ Array.fold
 
   readYear :: ReadM YearName
   readYear = eitherReader $ \year -> case parseInt year of
+    Right 2021 -> Right TheYear2021
     Right 2022 -> Right TheYear2022
     Right year -> Left $ "There are no Advent of Code Solutions for the Year " <> show year
     _ -> Left $ "Can't parse as Year: `" <> year <> "`"

@@ -9,6 +9,9 @@ build:
 run *ARGS:
     spago run -u {{pursargs}} --exec-args "run {{ARGS}}"
 
+all:
+    spago run -a all
+
 bundle:
     spago build --config ./prod.dhall 
     purs-backend-es build

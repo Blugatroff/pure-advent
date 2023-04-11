@@ -35,7 +35,8 @@ instance ordIndex :: Ord (Index a) where
 instance showIndex :: Show (Index a) where
   show (Index index) = show index
 
-data YearName = TheYear2022
+data YearName = TheYear2021 | TheYear2022
 
 instance showYearName :: Show YearName where
   show TheYear2022 = "2022"
+  show TheYear2021 = "2021"
