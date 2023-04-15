@@ -33,6 +33,7 @@
   , "safe-coerce"
   , "st"
   , "strings"
+  , "stringutils"
   , "tailrec"
   , "transformers"
   , "tuples"

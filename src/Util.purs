@@ -138,7 +138,7 @@ windows2 :: forall a. List a -> List (a /\ a)
 windows2 l = List.zip l $ List.drop 1 l
 
 windowsNonEmpty :: forall a. Int -> NonEmpty List a -> NonEmpty List (List a)
-windowsNonEmpty size (NonEmpty head List.Nil) = NonEmpty (List.singleton head) List.Nil
+windowsNonEmpty _ (NonEmpty head List.Nil) = NonEmpty (List.singleton head) List.Nil
 windowsNonEmpty size (NonEmpty head tail) = NonEmpty (head:List.take (size - 1) tail) (windows size tail)
 
 foreign import performanceNow :: Effect Number

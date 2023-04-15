@@ -7,7 +7,7 @@ build:
     spago build -u {{pursargs}}
 
 run *ARGS:
-    spago run -u {{pursargs}} --exec-args "run {{ARGS}}"
+    spago run -u {{pursargs}} --exec-args "{{ARGS}}"
 
 all:
     spago run -a all
