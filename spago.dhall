@@ -4,6 +4,7 @@
   , "arrays"
   , "bifunctors"
   , "console"
+  , "control"
   , "datetime"
   , "dotenv"
   , "effect"
