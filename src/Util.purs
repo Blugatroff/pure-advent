@@ -4,6 +4,7 @@ module Util
   , bindMaybes
   , chunks
   , dedup
+  , dedupCount
   , filterString
   , fromBigInt
   , indexed
@@ -39,6 +40,7 @@ import Control.Monad.Rec.Class (class MonadRec, Step, tailRecM)
 import Data.Array as Array
 import Data.Int as Int
 import Data.List as List
+import Data.Map as M
 import Data.NonEmpty (NonEmpty(..))
 import Data.Set as S
 import Data.String as String
@@ -124,6 +126,11 @@ mapSnd f (a /\ b) = a /\ f b
 
 dedup :: forall fi fo v. Foldable fi => Ord v => Unfoldable fo => fi v -> fo v
 dedup = S.fromFoldable >>> S.toUnfoldable
+
+dedupCount :: forall fi fo v. Foldable fi => Ord v => Unfoldable fo => fi v -> fo (v /\ Int)
+dedupCount = M.toUnfoldable <<< foldl f M.empty
+  where
+  f map k = M.insertWith add k 1 map
 
 pairs :: forall a. List a -> List (a /\ a)
 pairs list = chunks 2 list >>= case _ of
