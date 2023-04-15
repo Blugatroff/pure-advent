@@ -31,6 +31,7 @@ module Util
   , windows
   , windows2
   , windowsNonEmpty
+  , mapSum
   )
   where
 
@@ -195,3 +196,8 @@ tuplePermutations =
 mergeEither :: forall a. Either a a -> a
 mergeEither (Left a) = a
 mergeEither (Right a) = a
+
+
+mapSum :: forall f a b. Semiring b => Functor f => Foldable f => (a -> b) -> f a -> b
+mapSum = map (map sum) map
+
