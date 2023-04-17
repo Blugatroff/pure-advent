@@ -4,11 +4,9 @@ import MeLude
 
 import Data.Array as Array
 import Data.List as List
-import Data.Map as M
 import Data.Set as S
 import Data.String as String
-import Data.Tuple (Tuple(..))
-import Util (bindMaybes, lines, parseInt)
+import Util (lines, parseInt)
 
 type Pos = { x :: Int, y :: Int, z :: Int }
 
@@ -45,26 +43,9 @@ solvePartOne cubes =
     # Array.filter (\p -> not $ S.member p cubes)
     # Array.length
 
-fill ∷ Set Pos → Pos → Maybe (Set Pos)
-fill cubes from = flow from S.empty
+fillAir :: Set Pos -> Set Pos
+fillAir cubes = flow (List.singleton { x: minX, y: minY, z: minZ }) mempty
   where
-  flow :: Pos -> Set Pos -> Maybe (Set Pos)
-  flow { x } _ | x < minX || x > maxX = Nothing
-  flow { y } _ | y < minY || y > maxY = Nothing
-  flow { z } _ | z < minZ || z > maxZ = Nothing
-  flow pos visited | S.member pos cubes = Just visited
-  flow pos visited | S.member pos visited = Just visited
-  flow (pos@{ x, y, z }) visited =
-    flip bindMaybes (S.insert pos visited) $ List.fromFoldable
-      [ flow { x: x + 1, y, z }
-      , flow { x: x + 1, y, z }
-      , flow { x: x - 1, y, z }
-      , flow { x, y: y + 1, z }
-      , flow { x, y: y - 1, z }
-      , flow { x, y, z: z - 1 }
-      , flow { x, y, z: z + 1 }
-      ]
-
   cubePositions :: Array Pos
   cubePositions = S.toUnfoldable cubes
 
@@ -72,26 +53,29 @@ fill cubes from = flow from S.empty
   ys = _.y <$> cubePositions
   zs = _.z <$> cubePositions
 
-  minX = fromMaybe 0 $ minimum xs
-  minY = fromMaybe 0 $ minimum ys
-  minZ = fromMaybe 0 $ minimum zs
-  maxX = fromMaybe 0 $ maximum xs
-  maxY = fromMaybe 0 $ maximum ys
-  maxZ = fromMaybe 0 $ maximum zs
+  minX = (fromMaybe 0 $ minimum xs) - 1
+  minY = (fromMaybe 0 $ minimum ys) - 1
+  minZ = (fromMaybe 0 $ minimum zs) - 1
+  maxX = (fromMaybe 0 $ maximum xs) + 1
+  maxY = (fromMaybe 0 $ maximum ys) + 1
+  maxZ = (fromMaybe 0 $ maximum zs) + 1
+
+  flow :: List Pos -> Set Pos -> Set Pos
+  flow List.Nil visited = visited
+  flow ({ x } : rest) visited | x < minX || x > maxX = flow rest visited
+  flow ({ y } : rest) visited | y < minY || y > maxY = flow rest visited
+  flow ({ z } : rest) visited | z < minZ || z > maxZ = flow rest visited
+  flow (pos : rest) visited | S.member pos cubes = flow rest visited
+  flow (pos : rest) visited | S.member pos visited = flow rest visited
+  flow (pos@{ x, y, z } : rest) visited = S.insert pos visited 
+    # flow ({ x: x + 1, y, z } : { x: x + 1, y, z } : { x: x - 1, y, z } : { x, y: y + 1, z } : { x, y: y - 1, z } : { x, y, z: z - 1 } : { x, y, z: z + 1 } : rest)
 
 solvePartTwo ∷ Set Pos → Int
-solvePartTwo cubes = Array.length $ Array.filter (flip M.lookup lookup >>> fromMaybe false) neighs
+solvePartTwo cubes = Array.length $ Array.filter test $ neighbours =<< S.toUnfoldable cubes
   where
-  neighs :: Array Pos
-  neighs = S.toUnfoldable cubes >>= neighbours
+  air = fillAir cubes
 
-  distinctNeighbours :: Array Pos
-  distinctNeighbours = S.toUnfoldable $ S.fromFoldable neighs
-
-  lookup :: M.Map Pos Boolean
-  lookup = distinctNeighbours
-    # map (\pos -> Tuple pos (fill cubes pos == Nothing))
-    # M.fromFoldable
+  test pos = S.member pos air && (not (S.member pos cubes))
 
 partOne ∷ String → String |? String
 partOne input = parse input <#> solvePartOne <#> show
