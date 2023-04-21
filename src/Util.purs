@@ -32,6 +32,7 @@ module Util
   , windows2
   , windowsNonEmpty
   , mapSum
+  , median
   )
   where
 
@@ -200,4 +201,7 @@ mergeEither (Right a) = a
 
 mapSum :: forall f a b. Semiring b => Functor f => Foldable f => (a -> b) -> f a -> b
 mapSum = map (map sum) map
+
+median :: forall a. Ord a => Array a -> Maybe a
+median elems = Array.index (Array.sort elems) (Array.length elems `div` 2)
 
