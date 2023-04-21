@@ -16,6 +16,7 @@ import Year2021.Day8 as Day8
 import Year2021.Day9 as Day9
 import Year2021.Day10 as Day10
 import Year2021.Day11 as Day11
+import Year2021.Day12 as Day12
 
 days ∷ Map.Map (Index Day) Day
 days = Map.fromFoldable $ map (lmap Index)
@@ -30,4 +31,5 @@ days = Map.fromFoldable $ map (lmap Index)
   , 9 /\ Day Day9.partOne Day9.partTwo
   , 10 /\ Day Day10.partOne Day10.partTwo
   , 11 /\ Day Day11.partOne Day11.partTwo
+  , 12 /\ Day Day12.partOne Day12.partTwo
   ]
