@@ -9,6 +9,7 @@ module Data.PriorityQueue
   , takeMin
   , viewMax
   , viewMin
+  , empty
   ) where
 
 import Prelude
@@ -24,6 +25,9 @@ data PriorityQueue k = PriorityQueue (M.Map k (List k))
 
 instance showPriorityQueue :: Show k => Show (PriorityQueue k) where
   show (PriorityQueue m) = show m
+
+empty :: forall k. PriorityQueue k
+empty = PriorityQueue M.empty
 
 singleton :: forall k. k -> PriorityQueue k
 singleton k = PriorityQueue $ M.singleton k $ List.singleton k

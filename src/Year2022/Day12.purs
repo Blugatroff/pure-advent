@@ -7,6 +7,7 @@ import Data.CodePoint.Unicode (isAsciiLower)
 import Data.Enum (fromEnum)
 import Data.Map as M
 import Data.String as String
+import Data.Pos (Pos(Pos))
 import Dijkstra (class World, Cell(..), findSolutionFrom)
 import Util (indexed, lines)
 
@@ -14,7 +15,7 @@ data HeightMapCell = Start | End | Height Int
 
 derive instance eqHeightMapCell :: Eq HeightMapCell
 
-newtype HeightMap = HeightMap (M.Map (Int /\ Int) HeightMapCell)
+newtype HeightMap = HeightMap (M.Map Pos HeightMapCell)
 
 maximumHeight :: Int
 maximumHeight = fromEnum 'z' - fromEnum 'a'
@@ -24,19 +25,19 @@ cellHeight (Height h) = h
 cellHeight End = maximumHeight
 cellHeight Start = 0
 
-instance World HeightMap (Int /\ Int) where
-  lookupCell (x /\ y) (HeightMap map) = M.lookup (x /\ y) map <#> toDijkstraCell
+instance World HeightMap Pos Int where
+  lookupCell (Pos x y) (HeightMap map) = M.lookup (Pos x y) map <#> toDijkstraCell
     where
     toDijkstraCell :: HeightMapCell -> Cell
     toDijkstraCell Start = Cell 1
     toDijkstraCell End = Destination 1
     toDijkstraCell (Height _) = Cell 1
 
-  adjacentCells (x /\ y) (HeightMap world) =
-    [ (x - 1) /\ y, (x + 1) /\ y, x /\ (y - 1), x /\ (y + 1) ]
+  adjacentCells (Pos x y) (HeightMap world) =
+    [ Pos (x - 1) y, Pos (x + 1) y, Pos x (y - 1), Pos x (y + 1) ]
       # Array.filter movePossible
     where
-    movePossible to = case M.lookup (x /\ y) world, M.lookup to world of
+    movePossible to = case M.lookup (Pos x y) world, M.lookup to world of
       Just previous, Just this -> cellHeight previous + 1 >= cellHeight this
       _, _ -> false
 
@@ -52,10 +53,10 @@ parseLine = toCharArray >>> traverse parseCell
 parse :: String -> Either String HeightMap
 parse input = lines input <#> String.trim # Array.filter (not <<< String.null) # traverse parseLine <#> assocs <#> M.fromFoldable <#> HeightMap
   where
-  assocs :: Array (Array HeightMapCell) -> Array ((Int /\ Int) /\ HeightMapCell)
-  assocs lines = indexed lines >>= (\(y /\ l) -> indexed l <#> \(x /\ c) -> (x /\ y) /\ c)
+  assocs :: Array (Array HeightMapCell) -> Array (Pos /\ HeightMapCell)
+  assocs lines = indexed lines >>= (\(y /\ l) -> indexed l <#> \(x /\ c) -> (Pos x y) /\ c)
 
-findInHeightMap :: HeightMapCell -> HeightMap -> Maybe (Int /\ Int)
+findInHeightMap :: HeightMapCell -> HeightMap -> Maybe Pos
 findInHeightMap target (HeightMap map) = M.toUnfoldable map # Array.filter (eq target <<< snd) # Array.head <#> fst
 
 findHeightMapStart = findInHeightMap Start
@@ -69,7 +70,7 @@ solvePartOne heightMap = do
 
 newtype ReverseHeightMap = ReverseHeightMap HeightMap
 
-instance World ReverseHeightMap (Int /\ Int) where
+instance World ReverseHeightMap Pos Int where
   lookupCell pos (ReverseHeightMap (HeightMap map)) = M.lookup pos map <#> toDijkstraCell
     where
     toDijkstraCell :: HeightMapCell -> Cell
@@ -78,8 +79,8 @@ instance World ReverseHeightMap (Int /\ Int) where
     toDijkstraCell (Height 0) = Destination 1
     toDijkstraCell (Height _) = Cell 1
 
-  adjacentCells pos@(x /\ y) (ReverseHeightMap (HeightMap world)) =
-    [ (x - 1) /\ y, (x + 1) /\ y, x /\ (y - 1), x /\ (y + 1) ] # Array.filter movePossible
+  adjacentCells pos@(Pos x y) (ReverseHeightMap (HeightMap world)) =
+    [ Pos (x - 1) y, Pos (x + 1) y, Pos x (y - 1), Pos x (y + 1) ] # Array.filter movePossible
     where
     movePossible to = case M.lookup pos world, M.lookup to world of
       Just previous, Just this -> cellHeight this + 1 >= cellHeight previous
