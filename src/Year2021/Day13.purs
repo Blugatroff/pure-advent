@@ -90,5 +90,5 @@ measurePaper :: Dots -> PaperSize
 measurePaper dots = (fromMaybe zero $ maximum $ map fst dots) /\ (fromMaybe zero $ maximum $ map snd dots)
 
 partOne = parse >>> map (solvePartOne >>> show)
-partTwo = parse >>> map (solvePartTwo >>> show)
+partTwo = parse >>> map solvePartTwo
 
