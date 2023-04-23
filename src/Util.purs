@@ -33,8 +33,8 @@ module Util
   , windowsNonEmpty
   , mapSum
   , median
-  )
-  where
+  , toCharUnfoldable
+  ) where
 
 import MeLude
 
@@ -140,15 +140,18 @@ pairs list = chunks 2 list >>= case _ of
   _ -> List.Nil
 
 windows :: forall a. Int -> List a -> List (List a)
-windows _ Nil = Nil
-windows size list = List.take size list : windows size (List.drop 1 list)
+windows size = go List.Nil
+  where
+  go :: List (List a) -> List a -> List (List a)
+  go accum Nil = List.reverse accum
+  go accum list = go (List.take size list : accum) (List.drop 1 list)
 
 windows2 :: forall a. List a -> List (a /\ a)
 windows2 l = List.zip l $ List.drop 1 l
 
 windowsNonEmpty :: forall a. Int -> NonEmpty List a -> NonEmpty List (List a)
 windowsNonEmpty _ (NonEmpty head List.Nil) = NonEmpty (List.singleton head) List.Nil
-windowsNonEmpty size (NonEmpty head tail) = NonEmpty (head:List.take (size - 1) tail) (windows size tail)
+windowsNonEmpty size (NonEmpty head tail) = NonEmpty (head : List.take (size - 1) tail) (windows size tail)
 
 foreign import performanceNow :: Effect Number
 
@@ -188,16 +191,17 @@ tailRec0 :: forall m a. MonadRec m => m (Step Unit a) -> m a
 tailRec0 m = tailRecM (const m) unit
 
 tuplePermutations :: forall f a. Foldable f => f a -> Array (a /\ a)
-tuplePermutations = 
-  Array.fromFoldable >>> \items -> 
+tuplePermutations =
+  Array.fromFoldable >>> \items ->
     indexed items >>= \(i /\ item1) ->
-      let f = \(j /\ item2) -> if i /= j && j <= i then Just (item1 /\ item2) else Nothing
-      in Array.mapMaybe f $ indexed items
+      let
+        f = \(j /\ item2) -> if i /= j && j <= i then Just (item1 /\ item2) else Nothing
+      in
+        Array.mapMaybe f $ indexed items
 
 mergeEither :: forall a. Either a a -> a
 mergeEither (Left a) = a
 mergeEither (Right a) = a
-
 
 mapSum :: forall f a b. Semiring b => Functor f => Foldable f => (a -> b) -> f a -> b
 mapSum = map (map sum) map
@@ -205,3 +209,5 @@ mapSum = map (map sum) map
 median :: forall a. Ord a => Array a -> Maybe a
 median elems = Array.index (Array.sort elems) (Array.length elems `div` 2)
 
+toCharUnfoldable :: forall f. Unfoldable f => String -> f Char
+toCharUnfoldable = toCharArray >>> Array.toUnfoldable
