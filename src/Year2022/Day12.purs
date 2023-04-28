@@ -8,7 +8,7 @@ import Data.Enum (fromEnum)
 import Data.Map as M
 import Data.String as String
 import Data.Pos (Pos(Pos))
-import Dijkstra (class World, Cell(..), findSolutionFrom)
+import Dijkstra (class World, Cell(..), findPath)
 import Util (indexed, lines)
 
 data HeightMapCell = Start | End | Height Int
@@ -65,8 +65,8 @@ findHeightMapEnd = findInHeightMap End
 solvePartOne :: HeightMap -> Maybe Int
 solvePartOne heightMap = do
   start <- findHeightMapStart heightMap
-  { cost } <- findSolutionFrom heightMap start
-  Just $ cost - 1
+  { cost } <- findPath heightMap start
+  Just cost
 
 newtype ReverseHeightMap = ReverseHeightMap HeightMap
 
@@ -89,11 +89,12 @@ instance World ReverseHeightMap Pos Int where
 solvePartTwo :: HeightMap -> Maybe Int
 solvePartTwo heightMap = do
   peak <- findHeightMapEnd heightMap
-  { cost } <- findSolutionFrom (ReverseHeightMap heightMap) peak
-  Just $ cost - 1
+  { cost } <- findPath (ReverseHeightMap heightMap) peak
+  Just cost
 
 part :: (HeightMap -> Maybe Int) -> String -> Either String String
 part solve input = parse input <#> solve >>= note "No solution found :(" <#> show
 
 partOne = part solvePartOne
 partTwo = part solvePartTwo
+

@@ -6,8 +6,8 @@ import Control.Monad.Rec.Class (Step(..), tailRecM)
 import Control.Monad.ST as ST
 import Data.Array as Array
 import Data.List as List
-import Data.Map.ST.Int (IntMap)
-import Data.Map.ST.Int as IntMap
+import Data.Map.Native.ST (NativeMapST)
+import Data.Map.Native.ST as NativeMapST
 import Data.String as String
 import Util (lines, parseInt, splitStringOnce, windows2)
 
@@ -38,30 +38,30 @@ parsePath line =
 parse ∷ String → Either String (Array (Array Pos))
 parse input = lines input <#> String.trim # Array.filter (not <<< String.null) # traverse parsePath
 
-data Cave r = Cave (IntMap r (IntMap r Block))
+data Cave r = Cave (NativeMapST r Int (NativeMapST r Int Block))
 
 caveEmpty :: forall r. ST r (Cave r)
-caveEmpty = Cave <$> IntMap.empty
+caveEmpty = Cave <$> NativeMapST.empty
 
 caveLookup :: forall r. Pos -> Cave r -> ST r (Maybe Block)
-caveLookup { x, y } (Cave columns) = IntMap.lookup x columns >>= case _ of
-  Just column -> IntMap.lookup y column
+caveLookup { x, y } (Cave columns) = NativeMapST.lookup x columns >>= case _ of
+  Just column -> NativeMapST.lookup y column
   Nothing -> pure Nothing
 
 caveInsert :: forall r. Pos -> Block -> Cave r -> ST r Unit
 caveInsert { x, y } block (Cave columns) = do
-  IntMap.lookup x columns >>= case _ of
-    Just column -> void $ IntMap.insert y block column
+  NativeMapST.lookup x columns >>= case _ of
+    Just column -> void $ NativeMapST.insert y block column
     Nothing -> do
-      column <- IntMap.empty
-      void $ IntMap.insert y block column
-      void $ IntMap.insert x column columns
+      column <- NativeMapST.empty
+      void $ NativeMapST.insert y block column
+      void $ NativeMapST.insert x column columns
 
 caveEntries :: forall r. Cave r -> ST r (Array (Pos /\ Block))
 caveEntries (Cave columns) = Array.concat <$> do
-  columns <- IntMap.entries columns
+  columns <- NativeMapST.entries columns
   for columns \(x /\ column) -> do
-    cells <- IntMap.entries column
+    cells <- NativeMapST.entries column
     pure $ (\(y /\ block) -> { x, y } /\ block) <$> cells
 
 insertStone :: forall r. Pos -> Pos -> Cave r -> ST r Unit

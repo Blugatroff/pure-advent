@@ -5,7 +5,7 @@ import MeLude
 import Data.Array as Array
 import Data.String as String
 import Data.Pos (Pos(Pos))
-import Dijkstra (class World, Cell(..), findSolutionFrom)
+import Dijkstra (class World, Cell(..), findPath)
 import Util (parseInt)
 
 data Cave = Cave { cells :: Array Int, width :: Int, height :: Int }
@@ -32,7 +32,7 @@ parse input = do
   pure (Cave { cells, width, height })
 
 solvePartOne :: Cave -> Maybe Int
-solvePartOne cave = findSolutionFrom cave (Pos 0 0) <#> _.cost <#> sub (fromMaybe 0 $ getCell (Pos 0 0) cave) <#> negate
+solvePartOne cave = findPath cave (Pos 0 0) <#> _.cost
 
 tileCave :: Cave -> Cave
 tileCave c@(Cave cave) = Cave { cells, width: cave.width * 5, height: cave.height * 5 }

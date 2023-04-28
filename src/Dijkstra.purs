@@ -1,31 +1,31 @@
-module Dijkstra where
+module Dijkstra (findPath, Cell(..), class World, lookupCell, adjacentCells) where
 
 import MeLude
 
-import Control.Monad.Rec.Class (Step(Done, Loop), tailRecM)
-import Control.Monad.Rec.Class (tailRecM)
-import Control.Monad.ST (ST)
+import Control.Monad.Rec.Class (tailRecM, Step(..))
 import Control.Monad.ST as ST
 import Control.Monad.ST.Ref as STRef
-import Control.Monad.ST.STFn as STFn
-import Control.Monad.ST.Uncurried (STFn2, runSTFn1, runSTFn2, mkSTFn2)
+import Control.Monad.ST.Uncurried (runSTFn2, runSTFn3)
 import Data.Array as Array
-import Data.Maybe as Maybe
-import Data.Function.Uncurried (Fn3, mkFn3, runFn3)
+import Data.Heap as Heap
 import Data.List as List
-import Data.Primitive (class Primitive, class PrimitiveKey, primitiveKey)
-import Data.PriorityQueue as PQ
-import Data.Set.Native.ST (NativeSetST)
+import Data.Map as M
+import Data.Map.Native.ST as NativeMapST
+import Data.Maybe (isNothing)
+import Data.Primitive (class PrimitiveKey, primitiveKey)
 import Data.Set.Native.ST as NativeSetST
-import Data.Traversable (foldr)
-import Data.Tuple (Tuple(..))
-import Debug (traceM)
+import Partial.Unsafe (unsafePartial)
 
 class PrimitiveKey pos primitive <= World world pos primitive | pos -> primitive where
   lookupCell :: pos -> world -> Maybe Cell
   adjacentCells :: pos -> world -> Array pos
 
 data Cell = Destination Int | Cell Int
+
+instance eqCell :: Eq Cell where
+  eq (Cell a) (Cell b) = eq a b
+  eq (Destination a) (Destination b) = eq a b
+  eq _ _ = false
 
 instance showCell :: Show Cell where
   show (Cell n) = "(Cell " <> show n <> ")"
@@ -37,76 +37,113 @@ cellCost :: Cell -> Int
 cellCost (Destination cost) = cost
 cellCost (Cell cost) = cost
 
-data Path pos = PathEnd (Maybe (Lazy (Path pos))) pos Int Int | PathBranch (Maybe (Lazy (Path pos))) pos Int (Array (Lazy (Path pos)))
+type Graph pos = Map pos (Cell /\ List { pos :: pos, cell :: Cell })
 
-instance Show pos => Show (Path pos) where
-  show (PathEnd _ pos cost cellCost) = "(PathEnd " <> show pos <> " " <> show cost <> " " <> show cellCost <> ")"
-  show (PathBranch _ pos cost _) = "(PathBranch " <> show pos <> " " <> show cost <> ")"
+data Distance a = Distance a | Infinity
 
-instance (Show pos, Eq pos) => Eq (Path pos) where
-  eq (PathBranch _ pos1 cost1 _) (PathBranch _ pos2 cost2 _) = pos1 == pos2 && cost1 == cost2 -- && parent1 == parent2
-  eq (PathEnd _ pos1 cost1 cellCost1) (PathEnd _ pos2 cost2 cellCost2) = pos1 == pos2 && cost1 == cost2 && cellCost1 == cellCost2 -- && parent1 == parent2
+infinityToNothing :: forall a. Distance a -> Maybe a
+infinityToNothing Infinity = Nothing
+infinityToNothing (Distance a) = Just a
+
+nothingToInfinity :: forall a. Maybe (Distance a) -> Distance a
+nothingToInfinity Nothing = Infinity
+nothingToInfinity (Just d) = d
+
+instance eqDistance :: Eq a => Eq (Distance a) where
+  eq Infinity Infinity = true
+  eq (Distance a) (Distance b) = eq a b
   eq _ _ = false
 
-instance (Show pos, Eq pos) => Ord (Path pos) where
-  compare (PathEnd _ _ cost1 _) (PathEnd _ _ cost2 _) = compare cost1 cost2
-  compare (PathBranch _ _ cost1 _) (PathBranch _ _ cost2 _) = compare cost1 cost2
-  compare (PathBranch _ _ cost1 _) (PathEnd _ _ cost2 _) = compare cost1 cost2
-  compare (PathEnd _ _ cost1 _) (PathBranch _ _ cost2 _) = compare cost1 cost2
+instance ordDistance :: Ord a => Ord (Distance a) where
+  compare Infinity Infinity = EQ
+  compare (Distance _) Infinity = LT
+  compare Infinity (Distance _) = GT
+  compare (Distance a) (Distance b) = compare a b
 
-findPaths :: forall world pos primitive. Show pos => World world pos primitive => Fn3 (Maybe (Lazy (Path pos))) (Tuple pos Int) world (Maybe (Lazy (Path pos)))
-findPaths = inner
-  where
-  inner = mkFn3 \previous state world ->
-    let
-      (pos /\ cost) = state
-    in
-      case lookupCell pos world of
-        Nothing -> Nothing
-        Just cell ->
-          let
-            this = defer \_ -> case cell of
-              Destination _ -> PathEnd previous pos cost (cellCost cell)
-              _ ->
-                PathBranch previous pos cost
-                  $ Array.mapMaybe (\p -> runFn3 inner (Just this) (Tuple p (cost + (cellCost cell))) world)
-                  $ adjacentCells pos world
-          in
-            Just this
+instance showDistance :: Show a => Show (Distance a) where
+  show Infinity = "Infinity"
+  show (Distance a) = show a
 
-type PathQueue pos = PQ.PriorityQueue (Path pos)
+instance semiringDistance :: (Eq a, Semiring a) => Semiring (Distance a) where
+  zero = Distance zero
+  one = Distance one
+  add Infinity _ = Infinity
+  add _ Infinity = Infinity
+  add (Distance a) (Distance b) = Distance (add a b)
+  mul Infinity a = if a == zero then zero else Infinity
+  mul a Infinity = mul Infinity a
+  mul (Distance a) (Distance b) = Distance (mul a b)
 
-type Visited r = NativeSetST r
+lookupDistance :: forall k d. Ord k => Map k (Distance d) -> k -> Distance d
+lookupDistance m k = fromMaybe Infinity $ M.lookup k m
 
-evaluateNextBranch :: forall r pos t. PrimitiveKey pos t => Show pos => Ord pos => PathQueue pos -> Visited r t -> ST r (Maybe (Solution pos))
-evaluateNextBranch queue visited = do
-  queueRef <- STRef.new queue
-  solutionRef <- STRef.new Nothing
-  runSTFn2 STFn.while (STRef.read solutionRef <#> Maybe.isNothing) do
-    queue <- runSTFn1 STFn.read queueRef
-    case PQ.takeMin queue of
-        Nothing -> pure unit
-        Just (PathEnd p pos cost cellCost /\ _) -> do
-          let solution = Just { path: List.reverse $ pos : maybe List.Nil buildPath (force <$> p), cost: cost + cellCost }
-          runSTFn2 STFn.write solution solutionRef
-        Just (PathBranch _ pos _ next /\ remainingQueue) -> do
-          visitedBefore <- runSTFn2 NativeSetST.memberSTFn (primitiveKey pos) visited
-          runSTFn2 STFn.write remainingQueue queueRef
-          if visitedBefore then pure unit
-          else do
-            runSTFn2 NativeSetST.insertSTFn (primitiveKey pos) visited
-            runSTFn2 STFn.modify (\queue -> foldr PQ.insert queue (force <$> next)) queueRef
-  STRef.read solutionRef
+infix 10 lookupDistance as !??
 
-buildPath :: forall pos. Path pos -> List pos
-buildPath (PathEnd previous pos _ _) = pos : maybe List.Nil buildPath (force <$> previous)
-buildPath (PathBranch previous pos _ _) = pos : maybe List.Nil buildPath (force <$> previous)
+data OrdFst k v = OrdFst k v
 
-findSolutionFrom :: forall pos world primitive. Show pos => Ord pos => World world pos primitive => world -> pos -> Maybe (Solution pos)
-findSolutionFrom world pos = ST.run do
-  case runFn3 findPaths Nothing (Tuple pos 0) world of
-    Nothing -> pure Nothing
-    Just root -> do
-      visited <- NativeSetST.empty
-      evaluateNextBranch (PQ.singleton $ force root) visited
+instance eqOrdFst :: (Eq k, Eq v) => Eq (OrdFst k v) where
+  eq (OrdFst k1 v1) (OrdFst k2 v2) = k1 == k2 && v1 == v2
+
+instance ordOrdFst :: (Eq k, Eq v, Ord k) => Ord (OrdFst k v) where
+  compare (OrdFst k1 _) (OrdFst k2 _) = compare k1 k2
+
+findPath
+  :: forall world pos primitive
+   . World world pos primitive
+  => PrimitiveKey pos primitive
+  => Ord pos
+  => world
+  -> pos
+  -> Maybe { cost :: Int, path :: List pos }
+findPath world src = do
+  srcCell <- lookupCell src world
+
+  ST.run do
+    visited <- NativeSetST.empty
+    distances <- NativeMapST.fromFoldable [primitiveKey src /\ Distance 0 ]
+    queueRef <- STRef.new $ (Heap.fromFoldable [ OrdFst (Distance 0) { pos: src, cell: srcCell } ] :: Heap.Heap Heap.Min _)
+    prevs <- NativeMapST.empty
+    endPosRef <- STRef.new Nothing
+
+    ST.while (isNothing <$> STRef.read endPosRef) do
+      queue <- STRef.read queueRef
+      let min = Heap.min queue
+      void $ STRef.modify Heap.deleteMin queueRef
+      case min of
+        Nothing -> do
+          void $ STRef.write (Just Nothing) endPosRef
+        Just (OrdFst _ { pos, cell }) -> case cell of
+          Destination _ -> do
+            void $ STRef.write (Just (Just pos)) endPosRef
+          Cell _ -> do
+            alreadyVisited <- runSTFn2 NativeSetST.memberSTFn (primitiveKey pos) visited
+            if alreadyVisited then do
+              void $ STRef.write queue queueRef
+            else do
+              let adjacents = adjacentCells pos world
+              let unvisitedNeighbours = Array.mapMaybe (\pos -> lookupCell pos world <#> \cell -> { pos, cell }) adjacents
+              ST.foreach unvisitedNeighbours \neighbour -> do
+                alreadyVisited <- runSTFn2 NativeSetST.memberSTFn (primitiveKey neighbour.pos) visited
+                if alreadyVisited then pure unit
+                else do
+                  posDistance <- map nothingToInfinity $ NativeMapST.lookup (primitiveKey pos) distances
+                  neighbourDistance <- map nothingToInfinity $ NativeMapST.lookup (primitiveKey neighbour.pos) distances
+                  let altDistance = posDistance + (Distance (cellCost neighbour.cell))
+                  if altDistance >= neighbourDistance then pure unit
+                  else do
+                    runSTFn3 NativeMapST.insertSTFn (primitiveKey neighbour.pos) altDistance distances
+                    void $ STRef.modify (Heap.insert (OrdFst altDistance neighbour)) queueRef
+                    runSTFn3 NativeMapST.insertSTFn (primitiveKey neighbour.pos) pos prevs
+    endPos <- STRef.read endPosRef
+    unsafePartial $ case endPos of
+      Just Nothing -> pure Nothing
+      Just (Just endPos) -> do
+        path <- List.reverse <$> flip tailRecM { pos: endPos, path: List.Nil } \{ pos, path } -> do
+          v <- NativeMapST.lookup (primitiveKey pos) prevs
+          case v of
+            Nothing -> pure $ Done path
+            Just prev -> pure $ Loop { pos: prev, path: (prev : path) }
+
+        endPosDistance <- (infinityToNothing =<< _) <$> NativeMapST.lookup (primitiveKey endPos) distances
+        pure $ endPosDistance <#> \cost -> { cost, path }
 

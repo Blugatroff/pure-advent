@@ -6,7 +6,6 @@
   , "console"
   , "control"
   , "datetime"
-  , "debug"
   , "dotenv"
   , "effect"
   , "either"
@@ -31,8 +30,8 @@
   , "optparse"
   , "ordered-collections"
   , "parsing"
+  , "partial"
   , "prelude"
-  , "safe-coerce"
   , "st"
   , "strings"
   , "stringutils"
@@ -41,7 +40,6 @@
   , "tuples"
   , "unfoldable"
   , "unicode"
-  , "unsafe-coerce"
   ]
 , packages = ./packages.dhall
 , sources = [ "src/**/*.purs" ]

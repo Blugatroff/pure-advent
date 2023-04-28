@@ -10,10 +10,10 @@ instance eqPos :: Eq Pos where
   eq (Pos x1 y1) (Pos x2 y2) = x1 == x2 && y1 == y2
 
 instance ordPos :: Ord Pos where
-  compare (Pos x1 y1) (Pos x2 y2) = case compare x1 y1 of
+  compare (Pos x1 y1) (Pos x2 y2) = case compare x1 x2 of
     LT -> LT
     GT -> GT
-    EQ -> compare x2 y2
+    EQ -> compare y1 y2
 
 instance showPos :: Show Pos where
   show (Pos x y) = "(Pos " <> show x <> " " <> show y <> ")"
