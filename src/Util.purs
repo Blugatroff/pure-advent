@@ -37,6 +37,7 @@ module Util
   , toCharUnfoldable
   , dedupCountPrimitive
   , repeatM
+  , nonEmptyLines
   ) where
 
 import MeLude
@@ -242,3 +243,9 @@ median elems = Array.index (Array.sort elems) (Array.length elems `div` 2)
 
 toCharUnfoldable :: forall f. Unfoldable f => String -> f Char
 toCharUnfoldable = toCharArray >>> Array.toUnfoldable
+
+nonEmptyLines :: String -> Array String
+nonEmptyLines = lines
+  >>> map String.trim
+  >>> Array.filter (not <<< String.null)
+

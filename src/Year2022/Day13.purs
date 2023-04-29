@@ -6,8 +6,7 @@ import Data.Array as Array
 import Data.CodePoint.Unicode (isDecDigit)
 import Data.List as List
 import Data.String (codePointFromChar)
-import Data.String as String
-import Util (indexed, lines, mapFst, pairs, parseInt)
+import Util (indexed, mapFst, pairs, parseInt, nonEmptyLines)
 
 data Element = Number Int | List (List Element)
 
@@ -40,8 +39,7 @@ parseElement ('[' : rest) = do
 parseElement input = Left $ "unexpected input: '" <> fromCharArray (Array.fromFoldable input) <> "'"
 
 parse :: String -> Either String (Array Element)
-parse input = lines input <#> String.trim
-  # Array.filter (not <<< String.null)
+parse input = nonEmptyLines input
   <#> toCharArray
   >>> List.fromFoldable
   # traverse (map fst <<< parseElement)

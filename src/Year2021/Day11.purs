@@ -6,15 +6,12 @@ import Data.Array as Array
 import Data.Foldable (foldr)
 import Data.Function (applyN)
 import Data.Ord (abs)
-import Data.String as String
 import Data.String.CodeUnits as StringCodeUnits
-import Util (mapSnd, parseInt)
+import Util (mapSnd, parseInt, nonEmptyLines)
 
 type Grid = Array (Array Int)
 
-parse = String.split (String.Pattern "\n")
-  >>> Array.filter (not <<< String.null)
-  >>> traverse (toCharArray >>> traverse (StringCodeUnits.singleton >>> parseInt))
+parse = nonEmptyLines >>> traverse (toCharArray >>> traverse (StringCodeUnits.singleton >>> parseInt))
 
 increment :: Grid -> Grid
 increment = map (map (add 1))
