@@ -4,13 +4,12 @@ import MeLude
 
 import Control.Monad.State (State, modify_, get, execState)
 import Data.Array as Array
-import Data.Foldable (fold, maximumBy)
-import Data.Function (applyN)
+import Data.Foldable (fold)
 import Data.List as List
 import Data.Map as M
 import Data.String as String
 import JS.BigInt (BigInt, fromInt)
-import Util (dedupCount, mapFst, mapSnd, toCharUnfoldable, windows, windows2)
+import Util (dedupCount, mapFst, mapSnd, toCharUnfoldable, windows2, repeatM)
 
 data Rule = Rule Char Char Char
 
@@ -26,31 +25,6 @@ parse input =
   case String.split (String.Pattern "\n") input # map String.trim # Array.filter (not <<< String.null) # List.fromFoldable of
     (template : rules) -> traverse parseRule rules <#> (\rules -> { template: toCharUnfoldable template, rules })
     _ -> Left $ "failed to parse: " <> input
-
-findRule :: List Char -> List Rule -> Maybe Rule
-findRule (left : right : List.Nil) = List.find (\(Rule l r _) -> l == left && r == right)
-findRule _ = const Nothing
-
-applyRules :: List Rule -> List Char -> List Char
-applyRules rules template = foldl f List.Nil $ windows 2 template
-  where
-  f :: List Char -> List Char -> List Char
-  f out window =
-    out <> case findRule window rules of
-      Just (Rule _ _ between) -> List.take 1 window <> List.singleton between
-      Nothing -> List.take 1 window
-
-computeScore :: List Char -> String |? Int
-computeScore template = do
-  let error = "cannot compute score of empty template"
-  let ddc = dedupCount :: _ -> Array _
-  let ddcs = ddc template
-  mostCommon <- ddcs # maximumBy (compare `on` snd) # note error <#> snd
-  leastCommon <- ddcs # minimumBy (compare `on` snd) # note error <#> snd
-  pure $ mostCommon - leastCommon
-
-solvePartOne :: Int -> Input -> String |? Int
-solvePartOne n input = applyN (applyRules input.rules) n input.template # computeScore
 
 type Pair = Char /\ Char
 type Pairs = M.Map Pair BigInt
@@ -74,29 +48,30 @@ applyRule (Rule left right between) pairs = case M.lookup key pairs of
   leftSide = left /\ between
   rightSide = between /\ right
 
-applyRulesPartTwo :: List Rule -> State (Pairs /\ Letters) Unit
-applyRulesPartTwo rules = do
+applyRules :: List Rule -> State (Pairs /\ Letters) Unit
+applyRules rules = do
   oldPairs <- get <#> fst
   for_ rules \rule -> do
     applyRule rule oldPairs
 
-computeScorePartTwo :: Letters -> BigInt
-computeScorePartTwo letters = last - first
+computeScore :: Letters -> BigInt
+computeScore letters = last - first
   where
   list = Array.sort $ map snd $ M.toUnfoldable letters
   first = fromMaybe zero $ Array.head list
   last = fromMaybe zero $ Array.last list
 
 runSteps :: Int -> List Rule -> State (Pairs /\ Letters) Unit
-runSteps n rules = for_ (Array.range 1 n) $ \_ -> applyRulesPartTwo rules
+runSteps n rules = repeatM n $ applyRules rules
 
-solvePartTwo :: Int -> Input -> BigInt
-solvePartTwo n input =
+solve :: Int -> Input -> BigInt
+solve n input =
   execState (runSteps n input.rules) initialState
     # snd
-    # computeScorePartTwo
+    # computeScore
   where
   initialState = (getPairs input.template) /\ map fromInt (M.fromFoldable (dedupCount input.template :: Array _))
 
-partOne input = parse input >>= solvePartOne 10 >>> map show
-partTwo input = parse input <#> solvePartTwo 40 >>> show
+partOne input = parse input <#> solve 10 >>> show
+partTwo input = parse input <#> solve 40 >>> show
+

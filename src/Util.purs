@@ -36,6 +36,7 @@ module Util
   , median
   , toCharUnfoldable
   , dedupCountPrimitive
+  , repeatM
   ) where
 
 import MeLude
@@ -216,6 +217,9 @@ space = void $ ParsingString.char ' '
 
 tailRec0 :: forall m a. MonadRec m => m (Step Unit a) -> m a
 tailRec0 m = tailRecM (const m) unit
+
+repeatM :: forall m. Applicative m => Int -> m Unit -> m Unit
+repeatM n m = sequence_ $ Array.replicate n m
 
 tuplePermutations :: forall f a. Foldable f => f a -> Array (a /\ a)
 tuplePermutations =
