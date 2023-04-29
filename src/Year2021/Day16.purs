@@ -9,7 +9,7 @@ import Control.Monad.Trans.Class (lift)
 import Data.Array as Array
 import Data.List as List
 import Data.String as String
-import JS.BigInt (BigInt, fromInt, shl, or, toInt)
+import JS.BigInt (BigInt, shl, or, toInt)
 import Data.Traversable (fold, sequence)
 
 type Bit = Boolean

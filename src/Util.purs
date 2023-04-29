@@ -27,6 +27,7 @@ module Util
   , splitStringOnce
   , tailRec0
   , trace
+  , traceRuntime
   , tuplePermutations
   , windows
   , windows2
@@ -34,19 +35,25 @@ module Util
   , mapSum
   , median
   , toCharUnfoldable
+  , dedupCountPrimitive
   ) where
 
 import MeLude
 
 import Control.Monad.Rec.Class (class MonadRec, Step, tailRecM)
+import Control.Monad.ST as ST
 import Data.Array as Array
+import Data.DateTime.Instant as Instant
 import Data.Int as Int
 import Data.List as List
 import Data.Map as M
 import Data.NonEmpty (NonEmpty(..))
+import Data.Primitive (class PrimitiveKey, primitiveKey)
 import Data.Set as S
 import Data.String as String
+import Data.Map.Native.ST as NativeMapST
 import Effect.Console as Console
+import Effect.Now as Now
 import Effect.Unsafe (unsafePerformEffect)
 import JS.BigInt (BigInt)
 import Parsing (ParserT)
@@ -66,6 +73,15 @@ mapTrace :: forall a b. Show b => String -> (a -> b) -> a -> a
 mapTrace label map value = unsafePerformEffect do
   Console.error $ label <> ": " <> show (map value)
   pure value
+
+traceRuntime :: forall a b. String -> (a -> b) -> (a -> b)
+traceRuntime label f a = unsafePerformEffect do
+  start <- liftEffect $ unwrap <<< Instant.unInstant <$> Now.now
+  result <- pure $ f a
+  end <- liftEffect $ unwrap <<< Instant.unInstant <$> Now.now
+  let duration = end - start
+  Console.error $ label <> ": " <> show duration
+  pure $ result
 
 split :: forall a. Eq a => a -> List a -> List (List a)
 split _ Nil = Nil
@@ -133,6 +149,17 @@ dedupCount :: forall fi fo v. Foldable fi => Ord v => Unfoldable fo => fi v -> f
 dedupCount = M.toUnfoldable <<< foldl f M.empty
   where
   f map k = M.insertWith add k 1 map
+
+dedupCountPrimitive :: forall v prim. PrimitiveKey v prim => Array v -> Array (v /\ Int)
+dedupCountPrimitive f = ST.run do
+  m <- NativeMapST.empty
+  ST.foreach f \v -> do
+    let key = primitiveKey v
+    found <- NativeMapST.lookup key m
+    case found of
+      Nothing -> NativeMapST.insert key (v /\ 1) m
+      Just (_ /\ c) -> NativeMapST.insert key (v /\ (c + 1)) m
+  map snd <$> NativeMapST.entries m
 
 pairs :: forall a. List a -> List (a /\ a)
 pairs list = chunks 2 list >>= case _ of
