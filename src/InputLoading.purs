@@ -2,16 +2,21 @@ module InputLoading where
 
 import MeLude
 
+import Data.Array as Array
+import Data.List as List
+import Data.String as String
 import Day (Day, Index, YearName)
-import Effect.Aff (Aff, throwError, try)
+import Effect.Aff (Aff, Canceler(..), makeAff, throwError, try)
 import Effect.Console as Console
 import Effect.Exception (Error, error, message)
+import Effect.Ref as Ref
 import Fetch (Method(..))
 import Fetch as Fetch
 import Node.Encoding (Encoding(..))
 import Node.FS.Aff (mkdir', readTextFile, writeTextFile)
 import Node.FS.Perms (mkPerm, mkPerms)
-import Node.Process (exit, lookupEnv)
+import Node.Process (exit, lookupEnv, stdin)
+import Node.Stream (onDataString, onEnd, onError)
 
 newtype Cookie = Cookie String
 
@@ -55,3 +60,15 @@ buildPath ∷ YearName → Index Day → String
 buildPath year day = "." <> sep <> "inputs" <> sep <> show year <> sep <> show day <> ".txt"
   where
   sep = "/"
+
+readStdinAll :: Aff String
+readStdinAll = makeAff \resolve -> do
+  chunks <- Ref.new List.Nil
+  liftEffect do
+    onError stdin $ \error -> do
+       resolve $ Left error
+    onDataString stdin UTF8 \chunk -> do
+      void $ Ref.modify (chunk:_) chunks
+    onEnd stdin do
+      resolve =<< Right <<< String.joinWith "" <<< Array.reverse <<< Array.fromFoldable <$> Ref.read chunks
+  pure $ Canceler \_ -> pure unit

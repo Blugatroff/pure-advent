@@ -15,7 +15,7 @@ import Effect.Console as Console
 import Effect.Exception (message)
 import Effect.Now as Now
 import Data.DateTime.Instant as Instant
-import InputLoading (loadInput)
+import InputLoading (loadInput, readStdinAll)
 import Node.Encoding (Encoding(..))
 import Node.FS.Aff (readTextFile)
 import Node.Process (exit)
@@ -49,7 +49,8 @@ start (RunDay year dayIndex partName file) = do
 
   input <- ExceptT $ map (lmap message) $ try case file of
     Nothing -> loadInput year dayIndex
-    Just inputFile -> readTextFile UTF8 inputFile
+    Just (File inputPath) -> readTextFile UTF8 inputPath
+    Just Stdin -> readStdinAll
   liftEffect $ runPart part input
 start (RunAll year) = do
   let days = Array.sortBy (compare `on` fst) $ Map.toUnfoldable $ yearDays year
@@ -77,7 +78,9 @@ measureRuntime computation a = do
   let duration = end - start
   pure $ result /\ duration
 
-data Arguments = RunDay YearName (Index Day) PartName (Maybe String) | RunAll YearName
+data InputSource = File String | Stdin
+
+data Arguments = RunDay YearName (Index Day) PartName (Maybe InputSource) | RunAll YearName
 
 parser :: ParserInfo Arguments
 parser = info (commandsParser <**> helper) $ Array.fold
@@ -107,12 +110,19 @@ parser = info (commandsParser <**> helper) $ Array.fold
       , long "part"
       , short 'p'
       ]
-    input <- option (Just <$> str) $ Array.fold
+    input <- option (Just <$> readInputSource) $ Array.fold
       [ value Nothing
       , long "input"
       , short 'i'
       ]
     in RunDay year (Index day) part input
+
+  readInputSource :: ReadM InputSource
+  readInputSource = ado
+    path <- str
+    in case path of
+        "-" -> Stdin
+        path -> File path
 
   readYear :: ReadM YearName
   readYear = eitherReader $ \year -> case parseInt year of
