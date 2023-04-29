@@ -8,7 +8,7 @@ import Data.List as List
 import Data.Ord (abs)
 import Data.String (codePointFromChar)
 import Data.String as String
-import Js.BigInt.BigInt (BigInt, fromInt)
+import JS.BigInt (BigInt, fromInt)
 import Util (TransparentString(..), lines, parseInt, splitStringOnce)
 
 type Pos = { x :: Int, y :: Int }

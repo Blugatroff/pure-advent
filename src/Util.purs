@@ -48,7 +48,7 @@ import Data.Set as S
 import Data.String as String
 import Effect.Console as Console
 import Effect.Unsafe (unsafePerformEffect)
-import Js.BigInt.BigInt (BigInt)
+import JS.BigInt (BigInt)
 import Parsing (ParserT)
 import Parsing as Parsing
 import Parsing.Combinators as ParsingCombinators

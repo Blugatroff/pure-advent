@@ -7,7 +7,7 @@ import Data.List as List
 import Data.List.Lazy as LazyList
 import Data.Map as M
 import Data.String as String
-import Js.BigInt.BigInt (BigInt, fromInt)
+import JS.BigInt (BigInt, fromInt)
 import Util (dedupCount, mapSnd, parseInt)
 
 parse :: String -> String |? List Int

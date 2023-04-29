@@ -12,7 +12,7 @@ import Data.List.Lazy as LazyList
 import Data.NonEmpty ((:|))
 import Data.Set as S
 import Data.String.CodeUnits (fromCharArray, toCharArray) as String
-import Js.BigInt.BigInt (BigInt, fromInt, pow)
+import JS.BigInt (BigInt, fromInt, pow)
 import Util (dedup, fromBigInt, tailRec0)
 
 data Pos = Pos { x :: Int, y :: Int }

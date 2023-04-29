@@ -6,7 +6,7 @@ import Data.Array as Array
 import Data.List as List
 import Data.NonEmpty (NonEmpty, (:|))
 import Data.String as String
-import Js.BigInt.BigInt (BigInt, fromInt)
+import JS.BigInt (BigInt, fromInt)
 import Util (median)
 
 data ParenType = Paren | Bracket | Brace | Triangle
