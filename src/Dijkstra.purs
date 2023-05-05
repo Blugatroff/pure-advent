@@ -7,11 +7,11 @@ import Control.Monad.ST as ST
 import Control.Monad.ST.Ref as STRef
 import Control.Monad.ST.Uncurried (runSTFn2, runSTFn3)
 import Data.Array as Array
-import Data.Heap as Heap
 import Data.List as List
 import Data.Map as M
 import Data.Map.Native.ST as NativeMapST
 import Data.Maybe (isNothing)
+import Data.Heap.ST as STHeap
 import Data.Primitive (class PrimitiveKey, primitiveKey)
 import Data.Set.Native.ST as NativeSetST
 import Partial.Unsafe (unsafePartial)
@@ -87,11 +87,15 @@ instance eqOrdFst :: (Eq k, Eq v) => Eq (OrdFst k v) where
 instance ordOrdFst :: (Eq k, Eq v, Ord k) => Ord (OrdFst k v) where
   compare (OrdFst k1 _) (OrdFst k2 _) = compare k1 k2
 
+instance showOrdFst :: (Show k, Show v) => Show (OrdFst k v) where
+  show (OrdFst k v) = "(OrdFst " <> show k <> " " <> show v <> ")"
+
 findPath
   :: forall world pos primitive
    . World world pos primitive
   => PrimitiveKey pos primitive
   => Ord pos
+  => Show pos
   => world
   -> pos
   -> Maybe { cost :: Int, path :: List pos }
@@ -100,15 +104,14 @@ findPath world src = do
 
   ST.run do
     visited <- NativeSetST.empty
-    distances <- NativeMapST.fromFoldable [primitiveKey src /\ Distance 0 ]
-    queueRef <- STRef.new $ (Heap.fromFoldable [ OrdFst (Distance 0) { pos: src, cell: srcCell } ] :: Heap.Heap Heap.Min _)
+    distances <- NativeMapST.fromFoldable [ primitiveKey src /\ Distance 0 ]
+    queue <- STHeap.empty
+    STHeap.insert queue (OrdFst (Distance 0) { pos: src, cell: srcCell })
     prevs <- NativeMapST.empty
     endPosRef <- STRef.new Nothing
 
     ST.while (isNothing <$> STRef.read endPosRef) do
-      queue <- STRef.read queueRef
-      let min = Heap.min queue
-      void $ STRef.modify Heap.deleteMin queueRef
+      min <- STHeap.pop queue
       case min of
         Nothing -> do
           void $ STRef.write (Just Nothing) endPosRef
@@ -117,8 +120,7 @@ findPath world src = do
             void $ STRef.write (Just (Just pos)) endPosRef
           Cell _ -> do
             alreadyVisited <- runSTFn2 NativeSetST.memberSTFn (primitiveKey pos) visited
-            if alreadyVisited then do
-              void $ STRef.write queue queueRef
+            if alreadyVisited then do pure unit
             else do
               let adjacents = adjacentCells pos world
               let unvisitedNeighbours = Array.mapMaybe (\pos -> lookupCell pos world <#> \cell -> { pos, cell }) adjacents
@@ -132,7 +134,7 @@ findPath world src = do
                   if altDistance >= neighbourDistance then pure unit
                   else do
                     runSTFn3 NativeMapST.insertSTFn (primitiveKey neighbour.pos) altDistance distances
-                    void $ STRef.modify (Heap.insert (OrdFst altDistance neighbour)) queueRef
+                    STHeap.insert queue (OrdFst altDistance neighbour)
                     runSTFn3 NativeMapST.insertSTFn (primitiveKey neighbour.pos) pos prevs
     endPos <- STRef.read endPosRef
     unsafePartial $ case endPos of
@@ -146,4 +148,3 @@ findPath world src = do
 
         endPosDistance <- (infinityToNothing =<< _) <$> NativeMapST.lookup (primitiveKey endPos) distances
         pure $ endPosDistance <#> \cost -> { cost, path }
-

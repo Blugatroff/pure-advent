@@ -6,6 +6,7 @@
   , "console"
   , "control"
   , "datetime"
+  , "debug"
   , "dotenv"
   , "effect"
   , "either"
