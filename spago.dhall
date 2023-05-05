@@ -43,6 +43,7 @@
   , "tuples"
   , "unfoldable"
   , "unicode"
+  , "unordered-collections"
   ]
 , packages = ./packages.dhall
 , sources = [ "src/**/*.purs" ]

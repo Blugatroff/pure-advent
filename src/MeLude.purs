@@ -15,6 +15,8 @@ module MeLude
   , module Data.List
   , module Data.Map
   , module Data.Set
+  , module Data.HashMap
+  , module Data.HashSet
   , module Data.Ring
   , module Data.Unit
   , module Data.Functor
@@ -58,8 +60,10 @@ import Data.Ring (class Ring, negate, sub, (-))
 import Data.Newtype (class Newtype, unwrap)
 import Data.Lazy (Lazy, defer, force)
 import Data.List (List(..), (:))
-import Data.Set (Set)
 import Data.Map (Map)
+import Data.Set (Set)
+import Data.HashMap (HashMap)
+import Data.HashSet (HashSet)
 import Data.Unit (Unit, unit)
 import Data.Functor (class Functor, flap, map, void, ($>), (<#>), (<$), (<$>), (<@>))
 import Data.Monoid (class Monoid, (<>), mempty)

@@ -6,8 +6,8 @@ import Control.Apply ((*>))
 import Data.Array as Array
 import Data.List as List
 import Data.List.NonEmpty as NEL
-import Data.Map as M
-import Data.Set as S
+import Data.HashMap as M
+import Data.HashSet as S
 import Parsing (Parser, runParser)
 import Parsing.Combinators (many, optional, replicateM, sepBy1)
 import Parsing.String (string)
@@ -40,36 +40,38 @@ parser = Array.fromFoldable <$> many do
   optional newline
   pure valve
 
-type Network = Map String Valve
+type Network = HashMap String Valve
 
 getValve :: String -> Network -> Valve
 getValve name = fromMaybe { name: "NOTFOUND", rate: 0, tunnels: List.Nil } <<< M.lookup name
 
 type Path = List (String /\ String)
-type Paths = Map String (Map String Path)
+type Paths = HashMap String (HashMap String Path)
 
-findPaths :: Network -> Map String (Map String Path)
+findPaths :: Network -> HashMap String (HashMap String Path)
 findPaths network = network <#> \valve -> findPathsFrom valve
   where
-  findPathsFrom valve = 
-    let current = M.fromFoldable [ valve.name /\ List.Nil ]
-    in go { current, connections: current, next: M.empty }
+  findPathsFrom valve =
+    let
+      current = M.fromFoldable [ valve.name /\ List.Nil ]
+    in
+      go { current, connections: current, next: M.empty }
 
-  go :: { next :: Map String Path, current :: Map String Path, connections :: Map String Path } -> Map String Path
+  go :: { next :: HashMap String Path, current :: HashMap String Path, connections :: HashMap String Path } -> HashMap String Path
   go { current, connections } | M.isEmpty current = connections
   go { current, connections } = go $ newA { current = newA.next, next = M.empty }
     where
-    newA = foldl fold { next: M.empty, current, connections } 
-      $ (M.toUnfoldable current :: Array (String /\ Path))
+    newA = foldl fold { next: M.empty, current, connections } $ M.toArrayBy (/\) current
 
   fold { connections, current, next } (name /\ path) = foldl fold { connections, current, next } $ (getValve name network).tunnels
     where
     fold { connections, current, next } tunnel = case M.lookup tunnel connections of
-      Nothing -> 
-        let connPath = path <> List.singleton (name /\ tunnel)
-        in { connections: M.insert tunnel connPath connections, current, next: M.insert tunnel connPath next }
+      Nothing ->
+        let
+          connPath = path <> List.singleton (name /\ tunnel)
+        in
+          { connections: M.insert tunnel connPath connections, current, next: M.insert tunnel connPath next }
       Just _ -> { connections, current, next }
-        
 
 createNetwork :: forall f. Functor f => Foldable f => f Valve -> Network
 createNetwork = M.fromFoldable <<< map \valve -> valve.name /\ valve
@@ -90,28 +92,29 @@ type State =
   , maxTurns :: Int
   , turn :: Int
   , pressure :: Int
-  , openValves :: Set String
+  , openValves :: HashSet String
   }
 
 turnsLeft :: State -> Int
 turnsLeft { maxTurns, turn } = maxTurns - turn
 
-getPaths :: String -> Paths -> Map String Path
+getPaths :: String -> Paths -> HashMap String Path
 getPaths src = fromMaybe M.empty <<< M.lookup src
 
 findNextMoves :: State -> List Move
 findNextMoves state =
   getPaths state.position state.paths
-    # M.toUnfoldableUnordered
+    # M.toArrayBy (/\)
+    # List.fromFoldable
     # List.mapMaybe \(name /\ path) -> do
-      if S.member name state.openValves then Nothing else pure unit
-      let flow = (getValve name state.network).rate
-      if flow == 0 then Nothing else pure unit
-      let travelTurns = List.length path
-      let openTurns = 1
-      let turnsSpentOpen = turnsLeft state - travelTurns - openTurns
-      if turnsSpentOpen < 0 then Nothing 
-      else pure { reward: flow * turnsSpentOpen, target: name, path }
+        if S.member name state.openValves then Nothing else pure unit
+        let flow = (getValve name state.network).rate
+        if flow == 0 then Nothing else pure unit
+        let travelTurns = List.length path
+        let openTurns = 1
+        let turnsSpentOpen = turnsLeft state - travelTurns - openTurns
+        if turnsSpentOpen < 0 then Nothing
+        else pure { reward: flow * turnsSpentOpen, target: name, path }
 
 applyMove :: Move -> State -> State
 applyMove move state = state
@@ -121,9 +124,9 @@ applyMove move state = state
   , openValves = S.insert move.target state.openValves
   }
 
-type ValvesOpen = Set String
+type ValvesOpen = HashSet String
 type BestPressureAchieved = Int
-type Best = Map ValvesOpen BestPressureAchieved
+type Best = HashMap ValvesOpen BestPressureAchieved
 
 applyBestMoves :: (State -> Best -> Best) -> State -> Best -> State /\ List Move /\ Best
 applyBestMoves bestUpdater state best = spreadFrom List.Nil state best $ findNextMoves state
@@ -131,14 +134,15 @@ applyBestMoves bestUpdater state best = spreadFrom List.Nil state best $ findNex
   spreadFrom :: List Move -> State -> Best -> List Move -> State /\ List Move /\ Best
   spreadFrom bestMoves bestState best = case _ of
     List.Nil -> bestState /\ bestMoves /\ bestUpdater state best
-    (move:moves) -> 
-      let next = applyMove move state
-          (next /\ nextMoves /\ newBest) = applyBestMoves bestUpdater next best
-      in if next.pressure > bestState.pressure then
+    (move : moves) ->
+      let
+        next = applyMove move state
+        (next /\ nextMoves /\ newBest) = applyBestMoves bestUpdater next best
+      in
+        if next.pressure > bestState.pressure then
           spreadFrom nextMoves next newBest moves
         else
           spreadFrom bestMoves bestState newBest moves
-      
 
 solvePartOne :: Network -> Paths -> Int
 solvePartOne network paths = _.pressure $ fst $ applyBestMoves (const identity) (startingState network paths 30) M.empty
@@ -156,7 +160,7 @@ solvePartTwo network paths = fromMaybe (-1) $ bestPressure
 
   (_ /\ _ /\ best) = applyBestMoves bestUpdater (startingState network paths 26) M.empty
 
-  bestPressure = (M.toUnfoldable best :: Array _)
+  bestPressure = M.toArrayBy (/\) best
     # tuplePermutations
     # Array.filter (\((human /\ _) /\ (elephant /\ _)) -> S.isEmpty $ S.intersection human elephant)
     # map (\((_ /\ human) /\ (_ /\ elephant)) -> human + elephant)
