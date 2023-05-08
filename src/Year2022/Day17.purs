@@ -7,8 +7,11 @@ import Control.Monad.State (State, evalState, get, gets, modify, modify_)
 import Data.Array as Array
 import Data.Array.NonEmpty (NonEmptyArray)
 import Data.Array.NonEmpty as NEArray
+import Data.HashSet as HS
+import Data.Hashable (class Hashable, hash)
 import Data.List as List
 import Data.List.Lazy as LazyList
+import Data.Map as M
 import Data.NonEmpty ((:|))
 import Data.Set as S
 import Data.String.CodeUnits (fromCharArray, toCharArray) as String
@@ -16,6 +19,9 @@ import JS.BigInt (BigInt, fromInt, pow)
 import Util (dedup, fromBigInt, tailRec0)
 
 data Pos = Pos { x :: Int, y :: Int }
+
+instance hashablePos :: Hashable Pos where
+  hash (Pos p) = hash p
 
 xPos :: Pos -> Int
 xPos (Pos { x }) = x
@@ -29,23 +35,26 @@ instance showPos :: Show Pos where
   show (Pos { x, y }) = "(Pos " <> show x <> " " <> show y <> ")"
 
 instance Ord Pos where
-  compare (Pos { x: x1, y: y1 }) (Pos { x: x2, y: y2 }) = case compare y1 y2 of
-    LT -> LT
-    GT -> GT
-    EQ -> compare x1 x2
+  compare (Pos l) (Pos r) = case compare l.y r.y of
+    EQ -> compare l.x r.x
+    r -> r
 
 instance semiringPos :: Semiring Pos where
-  add (Pos { x: x1, y: y1 }) (Pos { x: x2, y: y2 }) = Pos { x: x1 + x2, y: y1 + y2 }
+  add (Pos l) (Pos r) = Pos { x: l.x + r.x, y: l.y + r.y }
   zero = Pos { x: 0, y: 0 }
-  mul (Pos { x: x1, y: y1 }) (Pos { x: x2, y: y2 }) = Pos { x: x1 * x2, y: y1 * y2 }
+  mul (Pos l) (Pos r) = Pos { x: l.x * r.x, y: l.y * r.y }
   one = Pos { x: 1, y: 1 }
 
 instance ringPos :: Ring Pos where
-  sub (Pos { x: x1, y: y1 }) (Pos { x: x2, y: y2 }) = Pos { x: x1 - x2, y: y1 - y2 }
+  sub (Pos l) (Pos r) = Pos { x: l.x - r.x, y: l.y - r.y }
 
-data Shape = Shape String (S.Set Pos)
+data Shape = Shape String (HS.HashSet Pos)
 
-derive instance eqShape :: Eq Shape
+instance eqShape :: Eq Shape where
+  eq (Shape l _) (Shape r _) = l == r
+
+instance ordShape :: Ord Shape where
+  compare (Shape l _) (Shape r _) = compare l r
 
 instance showShape :: Show Shape where
   show (Shape name _) = name
@@ -63,19 +72,19 @@ jetIndex :: Jets -> Int
 jetIndex (Jets i _) = i
 
 verticalLineShape :: Shape
-verticalLineShape = Shape "VerticalLine" $ S.fromFoldable $ (\y -> Pos { y, x: 0 }) <$> Array.range 0 3
+verticalLineShape = Shape "VerticalLine" $ HS.fromArray $ (\y -> Pos { y, x: 0 }) <$> Array.range 0 3
 
 horizontalLineShape :: Shape
-horizontalLineShape = Shape "HorizontalLine" $ S.fromFoldable $ (\x -> Pos { x, y: 0 }) <$> Array.range 0 3
+horizontalLineShape = Shape "HorizontalLine" $ HS.fromArray $ (\x -> Pos { x, y: 0 }) <$> Array.range 0 3
 
 crossShape :: Shape
-crossShape = Shape "Cross" $ S.fromFoldable $ ((\x -> Pos { x, y: 1 }) <$> Array.range 0 2) <> ((\y -> Pos { x: 1, y }) <$> Array.range 0 2)
+crossShape = Shape "Cross" $ HS.fromArray $ ((\x -> Pos { x, y: 1 }) <$> Array.range 0 2) <> ((\y -> Pos { x: 1, y }) <$> Array.range 0 2)
 
 lShape :: Shape
-lShape = Shape "L" $ S.fromFoldable $ ((\x -> Pos { x, y: 0 }) <$> Array.range 0 2) <> ((\y -> Pos { x: 2, y }) <$> Array.range 0 2)
+lShape = Shape "L" $ HS.fromArray $ ((\x -> Pos { x, y: 0 }) <$> Array.range 0 2) <> ((\y -> Pos { x: 2, y }) <$> Array.range 0 2)
 
 squareShape :: Shape
-squareShape = Shape "Square" $ S.fromFoldable [ Pos { x: 0, y: 0 }, Pos { x: 1, y: 0 }, Pos { x: 0, y: 1 }, Pos { x: 1, y: 1 } ]
+squareShape = Shape "Square" $ HS.fromArray [ Pos { x: 0, y: 0 }, Pos { x: 1, y: 0 }, Pos { x: 0, y: 1 }, Pos { x: 1, y: 1 } ]
 
 shapes :: LazyList.List Shape
 shapes = LazyList.cycle $ LazyList.fromFoldable [ horizontalLineShape, crossShape, lShape, verticalLineShape, squareShape ]
@@ -116,13 +125,13 @@ incrementCount = modify_ $ mapStateCount (add 1)
 
 spawnShape :: Pos -> Shape -> State TetrisState Unit
 spawnShape pos (Shape _ blocks) =
-  S.toUnfoldable blocks
+  HS.toArray blocks
     <#> (add pos)
     # Array.filter (\(Pos { x, y }) -> y >= 0 && x >= 0 && x <= 6)
     # traverse_ (modify <<< mapStateChamber <<< modifyChamber <<< S.insert)
 
 collisionWith :: Pos -> Shape -> Chamber -> Boolean
-collisionWith pos (Shape _ shape) (Chamber blocks) = (S.toUnfoldable shape :: Array Pos) <#> (add pos) # any colliding
+collisionWith pos (Shape _ shape) (Chamber blocks) = HS.toArray shape <#> (add pos) # any colliding
   where
   colliding pos@(Pos { x, y }) = x < 0 || x > 6 || y < 0 || S.member pos blocks
 
@@ -188,6 +197,7 @@ solvePartOne n = do
 newtype Seal = Seal (S.Set Pos)
 
 derive instance eqSeal :: Eq Seal
+derive instance ordSeal :: Ord Seal
 
 instance Show Seal where
   show (Seal seal) =
@@ -242,26 +252,36 @@ untilSeal = tailRec0 do
   spawnAndDropShape
   pure $ maybe (Loop unit) Done seal
 
-type Match = { seal :: Seal, shape :: Shape, jetIndex :: Int, state :: TetrisState }
+newtype Match = Match { seal :: Seal, shape :: Shape, jetIndex :: Int, state :: TetrisState }
 
-findSealPair :: List Match -> State TetrisState Match
-findSealPair = tailRecM go
+instance eqMatch :: Eq Match where
+  eq (Match l) (Match r) = l.jetIndex == r.jetIndex && l.seal == r.seal && l.shape == r.shape
+
+instance ordMatch :: Ord Match where
+  compare (Match l) (Match r) = case compare l.jetIndex r.jetIndex of
+    EQ -> case compare l.shape r.shape of
+      EQ -> compare l.seal r.seal
+      r -> r
+    r -> r
+
+findSealPair :: State TetrisState Match
+findSealPair = tailRecM go M.empty
   where
   go previousSeals = do
     void spawnAndDropShape
     nextSeal <- untilSeal
     nextShape <- peekShape
-    nextJetIndex <- gets $ jetIndex <<< _.jets
-    case List.find (\({ seal, shape, jetIndex }) -> seal == nextSeal && shape == nextShape && jetIndex == nextJetIndex) previousSeals of
-      Just p -> pure $ Done p
-      Nothing -> do
-        state <- get
-        pure $ Loop $ { seal: nextSeal, shape: nextShape, jetIndex: nextJetIndex, state } : previousSeals
+    state <- get
+    let nextJetIndex = jetIndex state.jets
+    let next = Match { seal: nextSeal, shape: nextShape, jetIndex: nextJetIndex, state }
+    pure $ case M.lookup next previousSeals of
+      Just p -> Done p
+      Nothing -> Loop $ M.insert next next previousSeals
 
 solvePartTwo :: BigInt -> State TetrisState String
 solvePartTwo n = do
   jets <- gets _.jets
-  { state: previousState } <- findSealPair List.Nil
+  Match { state: previousState } <- findSealPair
   let h1 = fromInt $ highestBlock $ previousState.chamber
   state <- get
   let h2 = fromInt $ highestBlock $ state.chamber
