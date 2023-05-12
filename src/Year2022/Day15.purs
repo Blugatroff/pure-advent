@@ -9,7 +9,7 @@ import Data.Ord (abs)
 import Data.String (codePointFromChar)
 import Data.String as String
 import JS.BigInt (BigInt, fromInt)
-import Util (TransparentString(..), lines, parseInt, splitStringOnce)
+import Util (TransparentString(..), lines, parseInt, splitStringOnce, traceRuntime)
 
 type Pos = { x :: Int, y :: Int }
 
@@ -115,7 +115,7 @@ solvePartOne ySlice sensors = sum $ rangeSize <$> tryMergeAll (List.fromFoldable
   ranges = rangesFromSensors ySlice sensors
 
 solvePartTwo :: Int -> List Sensor -> TransparentString
-solvePartTwo bounds sensors = TransparentString $ maybe "No solution found" show $ calculateScore <$> f 0
+solvePartTwo bounds sensors = TransparentString $ maybe "No solution found" show $ calculateScore <$> (traceRuntime "f" f) 0
   where
   boundRange = 0 .. bounds
 

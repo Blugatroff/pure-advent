@@ -4,15 +4,15 @@ import MeLude
 
 import Control.Apply ((*>))
 import Data.Array as Array
-import Data.List as List
-import Data.List.NonEmpty as NEL
 import Data.HashMap as M
 import Data.HashSet as S
+import Data.List as List
+import Data.List.NonEmpty as NEL
 import Parsing (Parser, runParser)
 import Parsing.Combinators (many, optional, replicateM, sepBy1)
 import Parsing.String (string)
 import Parsing.String.Basic (intDecimal, upper)
-import Util (newline, tuplePermutations)
+import Util (mapSnd, newline, tuplePermutations)
 
 type Valve = { name :: String, rate :: Int, tunnels :: List String }
 
@@ -101,12 +101,11 @@ turnsLeft { maxTurns, turn } = maxTurns - turn
 getPaths :: String -> Paths -> HashMap String Path
 getPaths src = fromMaybe M.empty <<< M.lookup src
 
-findNextMoves :: State -> List Move
+findNextMoves :: State -> Array Move
 findNextMoves state =
   getPaths state.position state.paths
     # M.toArrayBy (/\)
-    # List.fromFoldable
-    # List.mapMaybe \(name /\ path) -> do
+    # Array.mapMaybe \(name /\ path) -> do
         if S.member name state.openValves then Nothing else pure unit
         let flow = (getValve name state.network).rate
         if flow == 0 then Nothing else pure unit
@@ -128,21 +127,20 @@ type ValvesOpen = HashSet String
 type BestPressureAchieved = Int
 type Best = HashMap ValvesOpen BestPressureAchieved
 
-applyBestMoves :: (State -> Best -> Best) -> State -> Best -> State /\ List Move /\ Best
-applyBestMoves bestUpdater state best = spreadFrom List.Nil state best $ findNextMoves state
+applyBestMoves :: (State -> Best -> Best) -> State -> Best -> State /\ Array Move /\ Best
+applyBestMoves bestUpdater state best = mapSnd (mapSnd (bestUpdater state)) $ spreadFrom (state /\ [] /\ best) $ findNextMoves state
   where
-  spreadFrom :: List Move -> State -> Best -> List Move -> State /\ List Move /\ Best
-  spreadFrom bestMoves bestState best = case _ of
-    List.Nil -> bestState /\ bestMoves /\ bestUpdater state best
-    (move : moves) ->
-      let
-        next = applyMove move state
-        (next /\ nextMoves /\ newBest) = applyBestMoves bestUpdater next best
-      in
-        if next.pressure > bestState.pressure then
-          spreadFrom nextMoves next newBest moves
-        else
-          spreadFrom bestMoves bestState newBest moves
+  spreadFrom = foldl folding
+
+  folding :: State /\ Array Move /\ Best -> Move -> State /\ Array Move /\ Best
+  folding (bestState /\ bestMoves /\ best) move =
+    if next.pressure > bestState.pressure then
+      (next /\ nextMoves /\ newBest)
+    else
+      (bestState /\ bestMoves /\ newBest)
+    where
+    next = applyMove move state
+    (next /\ nextMoves /\ newBest) = applyBestMoves bestUpdater next best
 
 solvePartOne :: Network -> Paths -> Int
 solvePartOne network paths = _.pressure $ fst $ applyBestMoves (const identity) (startingState network paths 30) M.empty
