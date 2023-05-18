@@ -18,7 +18,7 @@ Of course, my Purescript programs were never as fast as the Haskell equivalent, 
 
 ## Progress
 - 2021: **`1..=18`**
-- 2022: **`1..=20`**
+- 2022: **`1..=21`**
 
 ## How to Run
 
