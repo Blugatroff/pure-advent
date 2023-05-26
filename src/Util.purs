@@ -38,6 +38,8 @@ module Util
   , dedupCountPrimitive
   , repeatM
   , nonEmptyLines
+  , minimumOrZero
+  , maximumOrZero
   ) where
 
 import MeLude
@@ -248,4 +250,10 @@ nonEmptyLines :: String -> Array String
 nonEmptyLines = lines
   >>> map String.trim
   >>> Array.filter (not <<< String.null)
+
+minimumOrZero :: forall f a. Foldable f => Ord a => Semiring a => f a -> a
+minimumOrZero = fromMaybe zero <<< minimum
+
+maximumOrZero :: forall f a. Foldable f => Ord a => Semiring a => f a -> a
+maximumOrZero = fromMaybe zero <<< maximum
 

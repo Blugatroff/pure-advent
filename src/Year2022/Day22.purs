@@ -7,15 +7,13 @@ import Data.Array as Array
 import Data.Foldable (maximumBy)
 import Data.Function (applyN)
 import Data.Generic.Rep (class Generic)
-import Data.List as List
 import Data.Map as M
 import Data.Set as S
 import Data.Show.Generic (genericShow)
 import Data.String as String
 import Data.String.Utils (lines)
-import Data.Traversable (sequence, scanl)
-import Debug (traceM)
-import Util (parseInt, trace)
+import Data.Traversable (sequence)
+import Util (mapFst, maximumOrZero, minimumOrZero, parseInt)
 
 data Instruction = TurnLeft | TurnRight | Move Int
 
@@ -54,7 +52,7 @@ parseBoard lines = M.fromFoldable <<< Array.concat <$> do
     let indexedTilesWithoutSpaces = Array.filter (snd >>> notEq ' ') indexedTiles
     for indexedTilesWithoutSpaces \(x /\ tile) -> do
       tile <- parseTile tile
-      pure $ ((x + 1) /\ (y + 1)) /\ tile
+      pure $ (x /\ y) /\ tile
 
 parseTile :: Char -> String |? Tile
 parseTile '.' = Right Air
@@ -76,6 +74,9 @@ parseInstruction "R" = Right TurnRight
 parseInstruction n = map Move $ lmap (\_ -> "failed to parse instruction: '" <> n <> "'") $ parseInt n
 
 data Direction = DirUp | DirDown | DirLeft | DirRight
+
+derive instance eqDirection :: Eq Direction
+derive instance ordDirection :: Ord Direction
 
 directionX ∷ Direction → Int
 directionX DirRight = 1
@@ -161,7 +162,7 @@ findStart board = do
   pure $ x /\ y
 
 score :: Cursor -> Int
-score { direction, pos: (column /\ row) } = directionScore direction + 1000 * row + 4 * column
+score { direction, pos: (column /\ row) } = directionScore direction + 1000 * (row + 1) + 4 * (column + 1)
 
 directionScore :: Direction -> Int
 directionScore = case _ of
@@ -170,24 +171,18 @@ directionScore = case _ of
   DirLeft -> 2
   DirUp -> 3
 
-solvePartOne :: Board /\ Path -> String |? Int
-solvePartOne (board /\ path) = do
-  start <- note "failed to find start" $ findStart board
-  let cursor = { direction: DirRight, pos: start }
-  let end = foldl (executeInstruction board) cursor path
-  Right $ score end
-
-showBoard :: Map (Int /\ Int) Char -> Board -> String
+showBoard :: Map (Int /\ Int) Direction -> Board -> String
 showBoard markings board = intercalate "\n" $ Array.range minY maxY
   <#> \y -> fromCharArray $ Array.range minX maxX
     <#> \x ->
       M.lookup (x /\ y) markings
-        # fromMaybe
+        # maybe
             ( case M.lookup (x /\ y) board of
                 Nothing -> ' '
                 Just Air -> '.'
                 Just Wall -> '#'
             )
+            directionChar
   where
   assocs = M.toUnfoldableUnordered board :: Array ((Int /\ Int) /\ Tile)
   positions = map fst assocs
@@ -198,5 +193,215 @@ showBoard markings board = intercalate "\n" $ Array.range minY maxY
   maxX = fromMaybe 0 $ maximum xs
   maxY = fromMaybe 0 $ maximum ys
 
+solvePartOne :: Board /\ Path -> String |? Int
+solvePartOne (board /\ path) = do
+  start <- note "failed to find start" $ findStart board
+  let cursor = { direction: DirRight, pos: start }
+  let end = foldl (executeInstruction board) cursor path
+  Right $ score end
+
+type CubeFace = Map (Int /\ Int) Tile
+
+type Cube =
+  { faces :: Map (Int /\ Int) CubeFace
+  , connections :: Connections
+  , board :: Board
+  , faceSize :: Int
+  }
+
+type Connections = Map ((Int /\ Int) /\ Direction) ((Int /\ Int) /\ Direction)
+
+buildCube :: Connections -> Board -> Cube
+buildCube connections board = { connections, faces, board, faceSize }
+  where
+  keys = fst <$> M.toUnfoldableUnordered board :: Array (Int /\ Int)
+  xs = fst <$> keys
+  ys = snd <$> keys
+  totalWidth = maximumOrZero xs - minimumOrZero xs + 1
+  totalHeight = maximumOrZero ys - minimumOrZero ys + 1
+  faceSize = gcd totalWidth totalHeight
+  width = totalWidth `div` faceSize
+  height = totalHeight `div` faceSize
+  faces = M.fromFoldable $ Array.concat do
+    (<#>) (Array.range 0 (width - 1)) \faceX -> Array.catMaybes do
+      (<#>) (Array.range 0 (height - 1)) \faceY -> do
+        ((faceX /\ faceY) /\ _) <<< M.fromFoldable <<< Array.concat <$> do
+          for (Array.range 0 (faceSize - 1)) \fx -> do
+            for (Array.range 0 (faceSize - 1)) \fy -> do
+              let x = faceX * faceSize + fx
+              let y = faceY * faceSize + fy
+              tile <- M.lookup (x /\ y) board
+              let rx = x `mod` faceSize
+              let ry = y `mod` faceSize
+              pure $ (rx /\ ry) /\ tile
+
+showCube :: Map ((Int /\ Int) /\ (Int /\ Int)) Direction -> Cube -> String
+showCube markings cube = showBoard boardMarkings cube.board
+  where
+  boardMarkings = M.fromFoldable $ map (mapFst translateMarking) $ (M.toUnfoldableUnordered markings :: Array _)
+  translateMarking ((fx /\ fy) /\ (x /\ y)) = (fx * cube.faceSize + x) /\ (fy * cube.faceSize + y)
+
+buildConnections :: Set (Int /\ Int) -> Connections
+buildConnections faces = M.empty
+
+type FaceLocation = (Int /\ Int) /\ Direction
+
+faceDistance :: Set (Int /\ Int) -> FaceLocation -> FaceLocation -> Int
+faceDistance faces = inner S.empty
+  where
+  inner :: Set FaceLocation -> FaceLocation -> FaceLocation -> Int
+  inner visited src dst | src == dst = 0
+  inner visited ((x /\ y) /\ dir) dst = 0
+
+  neighbouringFaces :: FaceLocation -> Array FaceLocation
+  neighbouringFaces ((x /\ y) /\ dir) =
+    [
+    ]
+
+connectionsTestInput :: Connections
+connectionsTestInput = M.fromFoldable do
+  [ ((2 /\ 0) /\ DirUp) /\ ((0 /\ 1) /\ DirDown)
+  , ((2 /\ 0) /\ DirRight) /\ ((3 /\ 2) /\ DirLeft)
+  , ((2 /\ 0) /\ DirDown) /\ ((2 /\ 1) /\ DirDown)
+  , ((2 /\ 0) /\ DirLeft) /\ ((1 /\ 1) /\ DirDown)
+
+  , ((0 /\ 1) /\ DirUp) /\ ((2 /\ 0) /\ DirDown)
+  , ((0 /\ 1) /\ DirRight) /\ ((1 /\ 1) /\ DirRight)
+  , ((0 /\ 1) /\ DirDown) /\ ((2 /\ 2) /\ DirUp)
+  , ((0 /\ 1) /\ DirLeft) /\ ((3 /\ 2) /\ DirUp)
+
+  , ((1 /\ 1) /\ DirUp) /\ ((2 /\ 0) /\ DirRight)
+  , ((1 /\ 1) /\ DirRight) /\ ((2 /\ 1) /\ DirRight)
+  , ((1 /\ 1) /\ DirDown) /\ ((2 /\ 2) /\ DirRight)
+  , ((1 /\ 1) /\ DirLeft) /\ ((0 /\ 1) /\ DirLeft)
+
+  , ((2 /\ 1) /\ DirUp) /\ ((2 /\ 0) /\ DirUp)
+  , ((2 /\ 1) /\ DirRight) /\ ((3 /\ 2) /\ DirDown)
+  , ((2 /\ 1) /\ DirDown) /\ ((2 /\ 2) /\ DirDown)
+  , ((2 /\ 1) /\ DirLeft) /\ ((1 /\ 1) /\ DirLeft)
+
+  , ((2 /\ 2) /\ DirUp) /\ ((2 /\ 1) /\ DirUp)
+  , ((2 /\ 2) /\ DirRight) /\ ((3 /\ 2) /\ DirRight)
+  , ((2 /\ 2) /\ DirDown) /\ ((0 /\ 1) /\ DirUp)
+  , ((2 /\ 2) /\ DirLeft) /\ ((1 /\ 1) /\ DirUp)
+
+  , ((3 /\ 2) /\ DirUp) /\ ((2 /\ 1) /\ DirLeft)
+  , ((3 /\ 2) /\ DirRight) /\ ((2 /\ 0) /\ DirLeft)
+  , ((3 /\ 2) /\ DirDown) /\ ((0 /\ 1) /\ DirRight)
+  , ((3 /\ 2) /\ DirLeft) /\ ((2 /\ 2) /\ DirLeft)
+  ]
+
+connectionsRealInput :: Connections
+connectionsRealInput = M.fromFoldable do
+  [ ((1 /\ 0) /\ DirUp) /\ ((0 /\ 3) /\ DirRight)
+  , ((1 /\ 0) /\ DirRight) /\ ((2 /\ 0) /\ DirRight)
+  , ((1 /\ 0) /\ DirDown) /\ ((1 /\ 1) /\ DirDown)
+  , ((1 /\ 0) /\ DirLeft) /\ ((0 /\ 2) /\ DirRight)
+
+  , ((2 /\ 0) /\ DirUp) /\ ((0 /\ 3) /\ DirUp)
+  , ((2 /\ 0) /\ DirRight) /\ ((1 /\ 2) /\ DirLeft)
+  , ((2 /\ 0) /\ DirDown) /\ ((1 /\ 1) /\ DirLeft)
+  , ((2 /\ 0) /\ DirLeft) /\ ((1 /\ 0) /\ DirLeft)
+
+  , ((1 /\ 1) /\ DirUp) /\ ((1 /\ 0) /\ DirUp)
+  , ((1 /\ 1) /\ DirRight) /\ ((2 /\ 0) /\ DirUp)
+  , ((1 /\ 1) /\ DirDown) /\ ((1 /\ 2) /\ DirDown)
+  , ((1 /\ 1) /\ DirLeft) /\ ((0 /\ 2) /\ DirDown)
+
+  , ((0 /\ 2) /\ DirUp) /\ ((1 /\ 1) /\ DirRight)
+  , ((0 /\ 2) /\ DirRight) /\ ((1 /\ 2) /\ DirRight)
+  , ((0 /\ 2) /\ DirDown) /\ ((0 /\ 3) /\ DirDown)
+  , ((0 /\ 2) /\ DirLeft) /\ ((1 /\ 0) /\ DirRight)
+
+  , ((1 /\ 2) /\ DirUp) /\ ((1 /\ 1) /\ DirUp)
+  , ((1 /\ 2) /\ DirRight) /\ ((2 /\ 0) /\ DirLeft)
+  , ((1 /\ 2) /\ DirDown) /\ ((0 /\ 3) /\ DirLeft)
+  , ((1 /\ 2) /\ DirLeft) /\ ((0 /\ 2) /\ DirLeft)
+
+  , ((0 /\ 3) /\ DirUp) /\ ((0 /\ 2) /\ DirUp)
+  , ((0 /\ 3) /\ DirRight) /\ ((1 /\ 2) /\ DirUp)
+  , ((0 /\ 3) /\ DirDown) /\ ((2 /\ 0) /\ DirDown)
+  , ((0 /\ 3) /\ DirLeft) /\ ((1 /\ 0) /\ DirDown)
+  ]
+
+type CubeCursor = { direction :: Direction, face :: Int /\ Int, pos :: Int /\ Int }
+
+scoreOnCube :: Cube -> CubeCursor -> Int
+scoreOnCube { faceSize } { direction, pos: (x /\ y), face: (fx /\ fy) } = do
+  let column = x + fx * faceSize + 1
+  let row = y + fy * faceSize + 1
+  directionScore direction + 1000 * row + 4 * column
+
+executeInstructionOnCube :: Cube -> CubeCursor -> Instruction -> CubeCursor
+executeInstructionOnCube _ cursor TurnLeft = cursor { direction = turnLeft cursor.direction }
+executeInstructionOnCube _ cursor TurnRight = cursor { direction = turnRight cursor.direction }
+executeInstructionOnCube cube cursor (Move distance) = applyN (moveCursorOnCube cube) distance cursor
+
+moveCursorOnCube :: Cube -> CubeCursor -> CubeCursor
+moveCursorOnCube cube cursor@{ face, pos: (px /\ py) } = fromMaybe cursor do
+  face <- M.lookup face cube.faces
+  case M.lookup newPos face of
+    Nothing -> wrap cursor
+    Just Air -> pure $ cursor { pos = newPos }
+    Just Wall -> pure cursor
+  where
+  newX = px + directionX cursor.direction
+  newY = py + directionY cursor.direction
+  newPos = newX /\ newY
+
+  wrap :: CubeCursor -> Maybe CubeCursor
+  wrap cursor = do
+    (face /\ direction) <- M.lookup (face /\ cursor.direction) cube.connections
+    let maxFace = cube.faceSize - 1
+    let (cursorX /\ cursorY) = cursor.pos
+    let
+      newPos =
+        ( case cursor.direction, direction of
+            DirUp, DirDown -> (maxFace - cursorX) /\ cursorY
+            DirRight, DirLeft -> cursorX /\ (maxFace - cursorY)
+            DirDown, DirUp -> (maxFace - cursorX) /\ cursorY
+            DirLeft, DirRight -> cursorX /\ (maxFace - cursorY)
+
+            DirUp, DirUp -> cursorX /\ maxFace
+            DirRight, DirRight -> 0 /\ cursorY
+            DirDown, DirDown -> cursorX /\ 0
+            DirLeft, DirLeft -> maxFace /\ cursorY
+
+            DirUp, DirRight -> 0 /\ cursorX
+            DirUp, DirLeft -> maxFace /\ (maxFace - cursorX)
+            DirRight, DirDown -> (maxFace - cursorY) /\ 0
+            DirRight, DirUp -> cursorY /\ maxFace
+            DirDown, DirLeft -> maxFace /\ cursorX
+            DirDown, DirRight -> 0 /\ (maxFace - cursorX)
+            DirLeft, DirUp -> (maxFace - cursorY) /\ maxFace
+            DirLeft, DirDown -> cursorY /\ 0
+        )
+    M.lookup face cube.faces >>= M.lookup newPos >>> case _ of
+      Nothing -> Nothing
+      Just Wall -> Nothing
+      Just Air -> pure $ cursor { pos = newPos, direction = direction, face = face }
+
+findStartOnCube :: Cube -> Maybe ((Int /\ Int) /\ (Int /\ Int))
+findStartOnCube { board, faceSize } = do
+  y <- minimum $ map snd $ map fst $ (M.toUnfoldableUnordered board :: Array _)
+  x <- minimum $ map fst $ Array.filter (snd >>> eq y) $ map fst $ (M.toUnfoldableUnordered board :: Array _)
+  let fx = x `div` faceSize
+  let fy = y `div` faceSize
+  let rx = x `mod` faceSize
+  let ry = y `mod` faceSize
+  pure $ (fx /\ fy) /\ (rx /\ ry)
+
+solvePartTwo :: Board /\ Path -> String |? Int
+solvePartTwo (board /\ path) = do
+  let width = fromMaybe 0 $ maximum $ map fst $ (S.toUnfoldable :: (_ -> Array _)) $ M.keys board
+  let connections = if width > 100 then connectionsRealInput else connectionsTestInput
+  let cube = buildCube connections board
+  face /\ start <- note "failed to find start" $ findStartOnCube cube
+  let startCursor = { direction: DirRight, pos: start, face }
+  let end = foldl (executeInstructionOnCube cube) startCursor path
+  -- let markings = M.fromFoldable $ map (\cursor -> (cursor.face /\ cursor.pos) /\ cursor.direction) $ [ startCursor ] <> cursors
+  -- void $ Left $ showCube markings cube
+  Right $ scoreOnCube cube end
+
 partOne input = parse input >>= solvePartOne >>> map show
-partTwo input = parse input # map show
+partTwo input = parse input >>= solvePartTwo >>> map show
