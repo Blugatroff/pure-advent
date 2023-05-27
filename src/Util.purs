@@ -11,7 +11,7 @@ module Util
   , lines
   , mapFst
   , mapSnd
-  , mapTrace
+  , traceWith 
   , mapWithPrevious
   , mergeEither
   , newline
@@ -71,11 +71,11 @@ parseInt s = case Int.fromString s of
   Just n -> Right n
 
 trace :: forall a. Show a => String -> a -> a
-trace = flip mapTrace identity
+trace = flip traceWith show
 
-mapTrace :: forall a b. Show b => String -> (a -> b) -> a -> a
-mapTrace label map value = unsafePerformEffect do
-  Console.error $ label <> ": " <> show (map value)
+traceWith :: forall a b. String -> (a -> String) -> a -> a
+traceWith label map value = unsafePerformEffect do
+  Console.error $ label <> ": " <> map value
   pure value
 
 traceRuntime :: forall a b. String -> (a -> b) -> (a -> b)
