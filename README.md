@@ -17,8 +17,8 @@ Even though Haskell and Purescript are obviously quite similar, there are some i
 Of course, my Purescript programs were never as fast as the Haskell equivalent, but that's fine. I didn't pick either language for their speed, if i want ultimate speed I'm just going to use Rust.
 
 ## Progress
-- 2021: **`1..=18`**
-- 2022: **`1..=21`**
+- 2021: **`1..=16`**
+- 2022: **`1..=24`**
 
 ## How to Run
 

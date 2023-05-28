@@ -4,6 +4,7 @@ import MeLude
 
 import Control.Bind (bindFlipped)
 import Data.Array as Array
+import Data.Direction (Direction(..), directionChar, directionX, directionY, turnLeft, turnRight)
 import Data.Foldable (maximumBy)
 import Data.Function (applyN)
 import Data.Generic.Rep (class Generic)
@@ -73,48 +74,11 @@ parseInstruction "L" = Right TurnLeft
 parseInstruction "R" = Right TurnRight
 parseInstruction n = map Move $ lmap (\_ -> "failed to parse instruction: '" <> n <> "'") $ parseInt n
 
-data Direction = DirUp | DirDown | DirLeft | DirRight
-
-derive instance eqDirection :: Eq Direction
-derive instance ordDirection :: Ord Direction
-
-directionX ∷ Direction → Int
-directionX DirRight = 1
-directionX DirLeft = -1
-directionX _ = 0
-
-directionY ∷ Direction → Int
-directionY DirDown = 1
-directionY DirUp = -1
-directionY _ = 0
-
 directionAxis :: forall a. Direction -> a /\ a -> a
 directionAxis DirDown = snd
 directionAxis DirUp = snd
 directionAxis DirRight = fst
 directionAxis DirLeft = fst
-
-turnLeft ∷ Direction → Direction
-turnLeft DirUp = DirLeft
-turnLeft DirLeft = DirDown
-turnLeft DirDown = DirRight
-turnLeft DirRight = DirUp
-
-turnRight ∷ Direction → Direction
-turnRight DirUp = DirRight
-turnRight DirRight = DirDown
-turnRight DirDown = DirLeft
-turnRight DirLeft = DirUp
-
-derive instance genericDirection :: Generic Direction _
-instance showDirection :: Show Direction where
-  show = genericShow
-
-directionChar :: Direction -> Char
-directionChar DirUp = '^'
-directionChar DirDown = 'v'
-directionChar DirLeft = '<'
-directionChar DirRight = '>'
 
 type Cursor = { direction :: Direction, pos :: Int /\ Int }
 

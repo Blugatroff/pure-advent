@@ -1,4 +1,4 @@
-module Data.Pos (Pos(..)) where
+module Data.Pos (Pos(..), x, y) where
 
 import Prelude
 import Data.Primitive (class PrimitiveKey)
@@ -20,4 +20,10 @@ instance showPos :: Show Pos where
 
 instance primitiveKeyPos :: PrimitiveKey Pos Int where
   primitiveKey (Pos x y) = (x `shl` 16) `or` y
+
+x :: Pos -> Int
+x (Pos x _) = x
+
+y :: Pos -> Int
+y (Pos _ y) = y
 
