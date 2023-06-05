@@ -20,6 +20,15 @@ Of course, my Purescript programs were never as fast as the Haskell equivalent, 
 - 2021: **`1..=16`**
 - 2022: **`1..=25`**
 
+## Dependencies
+- spago
+- purescript-psa
+- just
+- esbuild
+- nodejs
+
+If you use Nix can also get a complete development environment with **`nix develop`**.
+
 ## How to Run
 
 ```sh
