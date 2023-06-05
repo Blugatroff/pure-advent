@@ -20,7 +20,7 @@
               easy-ps.spago
               easy-ps.purescript-language-server
               easy-ps.purs-tidy
-              # easy-ps.psa
+              easy-ps.purs-backend-es
               pkgs.nodejs-18_x
               pkgs.esbuild
               pkgs.just
