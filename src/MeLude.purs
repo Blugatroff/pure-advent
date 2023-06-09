@@ -35,6 +35,7 @@ module MeLude
   , module Control.Bind
   , module Control.Applicative
   , module Control.Monad.ST
+  , module Control.Alt
 
   , module Effect
   , module Effect.Class
@@ -45,6 +46,7 @@ module MeLude
 import Control.Applicative (class Applicative, pure, unless, when, apply)
 import Control.Bind (bind, (>>=), (=<<), discard, join, (<=<), (>=>))
 import Control.Monad.ST (ST)
+import Control.Alt ((<|>))
 import Data.Bifunctor (lmap)
 import Data.Boolean (otherwise)
 import Data.Either (Either(..), note, either, hush)

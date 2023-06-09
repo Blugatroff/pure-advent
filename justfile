@@ -1,4 +1,4 @@
-pursargs := '"--censor-codes=\"MissingTypeDeclaration,ShadowedName\" --stash --censor-lib"'
+pursargs := '"--censor-codes=\"MissingTypeDeclaration,ShadowedName,UnusedName\" --stash --censor-lib"'
 
 default:
     just --list
