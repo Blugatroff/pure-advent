@@ -59,7 +59,10 @@ findBestShot :: forall f. Functor f => Foldable f => f Shot -> Maybe (Int /\ Sho
 findBestShot steps = steps <#> (\shot -> (shotScore shot) /\ shot) # maximumBy (compare `on` fst)
 
 scanRange :: Target -> Array Shot
-scanRange target = Array.catMaybes $ xrange >>= \vx -> Array.range target.minY 2000 <#> \vy -> shoot target ((0 /\ 0) /\ (vx /\ vy))
+scanRange target = do
+  vx <- xrange 
+  Array.range target.minY 2000 
+    # Array.mapMaybe \vy -> shoot target ((0 /\ 0) /\ (vx /\ vy))
   where
     xrange
       | target.minX > 0 = Array.range 0 target.maxX
@@ -67,10 +70,10 @@ scanRange target = Array.catMaybes $ xrange >>= \vx -> Array.range target.minY 2
       | otherwise = Array.range target.minX target.maxX
 
 solvePartOne :: Target -> Int
-solvePartOne target = maybe 0 fst $ findBestShot $ scanRange target
+solvePartOne = maybe 0 fst <<< findBestShot <<< scanRange
 
 solvePartTwo :: Target -> Int
-solvePartTwo = Array.length <$> scanRange
+solvePartTwo = Array.length <<< scanRange
 
 partOne :: String -> String |? String
 partOne = parse >>> map (solvePartOne >>> show)

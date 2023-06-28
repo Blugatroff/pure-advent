@@ -8,7 +8,7 @@
   outputs = { nixpkgs, flake-utils, easy-purescript-nix, ... }:
     flake-utils.lib.eachDefaultSystem (system:
       let
-        pkgs = nixpkgs.legacyPackages.${system};
+        pkgs = import nixpkgs { inherit system; };
         easy-ps = easy-purescript-nix.packages.${system};
       in
       {
@@ -16,12 +16,12 @@
           default = pkgs.mkShell {
             name = "purescript-custom-shell";
             buildInputs = [
-              easy-ps.purs-0_15_8
+              easy-ps.purs-0_15_9
               easy-ps.spago
               easy-ps.purescript-language-server
               easy-ps.purs-tidy
               easy-ps.purs-backend-es
-              pkgs.nodejs-18_x
+              pkgs.nodejs_20
               pkgs.esbuild
               pkgs.just
               pkgs.nodePackages.purescript-psa
