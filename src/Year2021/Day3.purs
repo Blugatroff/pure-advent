@@ -2,7 +2,6 @@ module Year2021.Day3 (partOne, partTwo) where
 
 import MeLude
 
-import Control.Alt ((<|>))
 import Data.Array.NonEmpty as NonEmptyArray
 import Data.List (transpose)
 import Data.List as List

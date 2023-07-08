@@ -6,7 +6,6 @@ import Data.Array as Array
 import Data.List as List
 import Data.List.NonEmpty as NE
 import Data.NonEmpty ((:|))
-import Data.Ord (abs)
 import Data.String as String
 import Util (dedup, lines, mapFst, mapSnd, mapWithPrevious, parseInt, sign, splitStringOnce)
 

@@ -4,7 +4,6 @@ import MeLude
 
 import Control.Monad.State (State, modify_, get, execState)
 import Data.Array as Array
-import Data.Foldable (fold)
 import Data.List as List
 import Data.Map as M
 import Data.String as String

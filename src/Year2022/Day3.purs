@@ -7,7 +7,7 @@ import Data.Char (toCharCode)
 import Data.CodePoint.Unicode (isAsciiLower, isAsciiUpper)
 import Data.List as List
 import Data.Set as S
-import Data.String (codePointFromChar, null, trim)
+import Data.String (null, trim)
 import Data.String as String
 import Util (chunks, lines, reduceR)
 

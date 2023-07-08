@@ -5,15 +5,11 @@ import MeLude
 import Control.Monad.State (class MonadState, StateT, evalStateT, get, lift, put)
 import Data.Array as Array
 import Data.CodePoint.Unicode (isDecDigit)
-import Data.Foldable (maximumBy)
 import Data.Generic.Rep (class Generic)
 import Data.List as List
-import Data.Ord (abs)
 import Data.Show.Generic (genericShow)
-import Data.String (codePointFromChar)
 import Data.String as String
-import Data.Tuple (uncurry)
-import Util (mapFst, reduceL, sign, splitStringOnce)
+import Util (mapFst, reduceL)
 import Util as Util
 
 data Element = Number Int | Pair Element Element
@@ -41,7 +37,7 @@ isCharDecDigit = codePointFromChar >>> isDecDigit
 parseInt :: StateT (List Char) (Either String) Int
 parseInt = get >>= case _ of
   Nil -> throwInState "expected number found ''"
-  (first : rest) | isCharDecDigit first -> do
+  (first : _) | isCharDecDigit first -> do
     number <- takeFromStateWhile isCharDecDigit
     lift $ Util.parseInt (fromCharArray $ Array.fromFoldable number)
   rest -> throwInState $ "expected number found: " <> (fromCharArray $ Array.fromFoldable rest)
@@ -94,49 +90,49 @@ instance ordLocation :: Ord Location where
 
 inDepth :: Int -> Element -> Array (Location /\ Element)
 inDepth 0 element = [ Here /\ element ]
-inDepth depth (Number _) = []
+inDepth _ (Number _) = []
 inDepth depth (Pair left right) =
   (mapFst LeftSide <$> inDepth (depth - 1) left)
     <> (mapFst RightSide <$> inDepth (depth - 1) right)
 
 getElement :: Location -> Element -> Maybe Element
 getElement Here element = Just element
-getElement (LeftSide loc) (Number n) = Nothing
-getElement (RightSide loc) (Number n) = Nothing
-getElement (LeftSide loc) (Pair left right) = getElement loc left
-getElement (RightSide loc) (Pair left right) = getElement loc right
+getElement (LeftSide _) (Number _) = Nothing
+getElement (RightSide _) (Number _) = Nothing
+getElement (LeftSide loc) (Pair left _) = getElement loc left
+getElement (RightSide loc) (Pair _ right) = getElement loc right
 
 replaceElement :: Location -> (Element -> Element) -> Element -> (Element /\ Maybe Element)
 replaceElement Here new tree = new tree /\ Just tree
-replaceElement (RightSide loc) new (Number n) = Number n /\ Nothing
-replaceElement (LeftSide loc) new (Number n) = Number n /\ Nothing
+replaceElement (RightSide _) _ (Number n) = Number n /\ Nothing
+replaceElement (LeftSide _) _ (Number n) = Number n /\ Nothing
 replaceElement (LeftSide loc) new (Pair left right) = replaceElement loc new left # mapFst (_ `Pair` right)
 replaceElement (RightSide loc) new (Pair left right) = replaceElement loc new right # mapFst (Pair left)
 
 elementsWithLocation :: Element -> Array (Location /\ Element)
-elementsWithLocation el@(Number n) = [ Here /\ el ]
+elementsWithLocation el@(Number _) = [ Here /\ el ]
 elementsWithLocation el@(Pair left right) =
   [ Here /\ el ]
     <> (mapFst LeftSide <$> elementsWithLocation left)
     <> (mapFst RightSide <$> elementsWithLocation right)
 
 isPair :: Element -> Boolean
-isPair (Pair left right) = true
-isPair (Number n) = false
+isPair (Pair _ _) = true
+isPair (Number _) = false
 
 isNumber :: Element -> Boolean
-isNumber (Number n) = true
-isNumber pair = false
+isNumber (Number _) = true
+isNumber _ = false
 
 explode :: Location -> Element -> Element
 explode location element = case explodingPair of
   Just (Pair (Number left) (Number right)) ->
     replaceExploding $ addLeftValue left $ addRightValue right element
-  nonRegularNumberPair -> element
+  _nonRegularNumberPair -> element
   where
   add :: Int -> Element -> Element
   add v (Number n) = Number $ n + v
-  add v el = el
+  add _ el = el
 
   explodingPair = getElement location element
 
@@ -159,9 +155,9 @@ explode location element = case explodingPair of
   firstRight = firstNumberToTheRight location element
 
   firstNumberToTheLeft :: Location -> Element -> Maybe Location
-  firstNumberToTheLeft _ (Number n) = Nothing
-  firstNumberToTheLeft Here (Pair left right) = Nothing
-  firstNumberToTheLeft (RightSide loc) (Pair (Number n) right) =
+  firstNumberToTheLeft _ (Number _) = Nothing
+  firstNumberToTheLeft Here (Pair _ _) = Nothing
+  firstNumberToTheLeft (RightSide loc) (Pair (Number _) right) =
     (firstNumberToTheLeft loc right <#> RightSide) <|> Just (LeftSide Here)
   firstNumberToTheLeft (RightSide loc) (Pair left right) =
     (firstNumberToTheLeft loc right <#> RightSide) <|> lastNumberInLeftElement
@@ -172,13 +168,13 @@ explode location element = case explodingPair of
         <#> fst
         # Array.last
         <#> LeftSide
-  firstNumberToTheLeft (LeftSide loc) (Pair left right) =
+  firstNumberToTheLeft (LeftSide loc) (Pair left _) =
     firstNumberToTheLeft loc left <#> LeftSide
 
   firstNumberToTheRight :: Location -> Element -> Maybe Location
-  firstNumberToTheRight _ (Number n) = Nothing
-  firstNumberToTheRight Here (Pair left right) = Nothing
-  firstNumberToTheRight (LeftSide loc) (Pair left (Number n)) =
+  firstNumberToTheRight _ (Number _) = Nothing
+  firstNumberToTheRight Here (Pair _ _) = Nothing
+  firstNumberToTheRight (LeftSide loc) (Pair left (Number _)) =
     (firstNumberToTheRight loc left <#> LeftSide) <|> Just (RightSide Here)
   firstNumberToTheRight (LeftSide loc) (Pair left right) =
     (firstNumberToTheRight loc left <#> LeftSide) <|> firstNumberInRightElement
@@ -189,7 +185,7 @@ explode location element = case explodingPair of
         <#> fst
         # Array.head
         <#> RightSide
-  firstNumberToTheRight (RightSide loc) (Pair left right) =
+  firstNumberToTheRight (RightSide loc) (Pair _ right) =
     firstNumberToTheRight loc right <#> RightSide
 
 findBigRegularNumbers :: Element -> Array Location
@@ -197,7 +193,7 @@ findBigRegularNumbers = map fst <<< Array.filter (test <<< snd) <<< elementsWith
   where
     test :: Element -> Boolean
     test (Number n) | n >= 10 = true
-    test notABigNumber = false
+    test _notABigNumber = false
 
 splitElement :: Location -> Element -> Element
 splitElement location = fst <<< replaceElement location splitter

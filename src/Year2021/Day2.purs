@@ -2,7 +2,6 @@ module Year2021.Day2 (partOne, partTwo) where
 
 import MeLude
 
-import Data.Tuple (uncurry)
 import Parsing (Parser, runParser)
 import Parsing.Combinators (optional, choice)
 import Parsing.Combinators.Array (many)

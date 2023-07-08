@@ -5,7 +5,6 @@ import MeLude
 import Data.Array as Array
 import Data.List as List
 import Data.List.Lazy as LazyList
-import Data.Ord (abs)
 import Data.String as String
 import Util (parseInt)
 

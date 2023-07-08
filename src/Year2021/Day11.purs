@@ -4,8 +4,6 @@ import MeLude
 
 import Data.Array as Array
 import Data.Foldable (foldr)
-import Data.Function (applyN)
-import Data.Ord (abs)
 import Data.String.CodeUnits as StringCodeUnits
 import Util (mapSnd, parseInt, nonEmptyLines)
 

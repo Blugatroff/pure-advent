@@ -5,7 +5,6 @@ import MeLude
 import Data.Array as Array
 import Data.CodePoint.Unicode (isDecDigit)
 import Data.List as List
-import Data.String (codePointFromChar)
 import Util (indexed, mapFst, pairs, parseInt, nonEmptyLines)
 
 data Element = Number Int | List (List Element)

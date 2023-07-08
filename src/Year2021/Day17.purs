@@ -3,10 +3,7 @@ module Year2021.Day17 (partOne, partTwo) where
 import MeLude
 
 import Data.Array as Array
-import Data.Foldable (maximumBy)
 import Data.List as List
-import Data.Ord (abs)
-import Data.String (codePointFromChar)
 import Data.String as String
 import Util (parseInt, sign, splitStringOnce)
 

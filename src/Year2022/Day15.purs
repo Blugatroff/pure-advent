@@ -5,8 +5,6 @@ import MeLude
 import Data.Array as Array
 import Data.CodePoint.Unicode (isDecDigit)
 import Data.List as List
-import Data.Ord (abs)
-import Data.String (codePointFromChar)
 import Data.String as String
 import JS.BigInt (BigInt, fromInt)
 import Util (TransparentString(..), lines, parseInt, splitStringOnce)

@@ -73,7 +73,7 @@ parseInt s = case Int.fromString s of
 trace :: forall a. Show a => String -> a -> a
 trace = flip traceWith show
 
-traceWith :: forall a b. String -> (a -> String) -> a -> a
+traceWith :: forall a. String -> (a -> String) -> a -> a
 traceWith label map value = unsafePerformEffect do
   Console.error $ label <> ": " <> map value
   pure value

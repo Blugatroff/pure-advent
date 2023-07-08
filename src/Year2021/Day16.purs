@@ -10,7 +10,6 @@ import Data.Array as Array
 import Data.List as List
 import Data.String as String
 import JS.BigInt (BigInt, shl, or, toInt)
-import Data.Traversable (fold, sequence)
 
 type Bit = Boolean
 newtype Bits = Bits (List Bit)

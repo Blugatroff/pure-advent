@@ -4,17 +4,14 @@ import MeLude
 
 import Control.Bind (bindFlipped)
 import Data.Array as Array
-import Data.Direction (Direction(..), directionChar, directionX, directionY, turnLeft, turnRight)
-import Data.Foldable (maximumBy)
-import Data.Function (applyN)
+import Data.Direction (Direction(..), directionX, directionY, turnLeft, turnRight)
 import Data.Generic.Rep (class Generic)
 import Data.Map as M
 import Data.Set as S
 import Data.Show.Generic (genericShow)
 import Data.String as String
 import Data.String.Utils (lines)
-import Data.Traversable (sequence)
-import Util (mapFst, maximumOrZero, minimumOrZero, parseInt)
+import Util (maximumOrZero, minimumOrZero, parseInt)
 
 data Instruction = TurnLeft | TurnRight | Move Int
 
@@ -135,28 +132,6 @@ directionScore = case _ of
   DirLeft -> 2
   DirUp -> 3
 
-showBoard :: Map (Int /\ Int) Direction -> Board -> String
-showBoard markings board = intercalate "\n" $ Array.range minY maxY
-  <#> \y -> fromCharArray $ Array.range minX maxX
-    <#> \x ->
-      M.lookup (x /\ y) markings
-        # maybe
-            ( case M.lookup (x /\ y) board of
-                Nothing -> ' '
-                Just Air -> '.'
-                Just Wall -> '#'
-            )
-            directionChar
-  where
-  assocs = M.toUnfoldableUnordered board :: Array ((Int /\ Int) /\ Tile)
-  positions = map fst assocs
-  xs = map fst positions
-  ys = map snd positions
-  minX = fromMaybe 0 $ minimum xs
-  minY = fromMaybe 0 $ minimum ys
-  maxX = fromMaybe 0 $ maximum xs
-  maxY = fromMaybe 0 $ maximum ys
-
 solvePartOne :: Board /\ Path -> String |? Int
 solvePartOne (board /\ path) = do
   start <- note "failed to find start" $ findStart board
@@ -199,28 +174,7 @@ buildCube connections board = { connections, faces, board, faceSize }
               let ry = y `mod` faceSize
               pure $ (rx /\ ry) /\ tile
 
-showCube :: Map ((Int /\ Int) /\ (Int /\ Int)) Direction -> Cube -> String
-showCube markings cube = showBoard boardMarkings cube.board
-  where
-  boardMarkings = M.fromFoldable $ map (mapFst translateMarking) $ (M.toUnfoldableUnordered markings :: Array _)
-  translateMarking ((fx /\ fy) /\ (x /\ y)) = (fx * cube.faceSize + x) /\ (fy * cube.faceSize + y)
-
-buildConnections :: Set (Int /\ Int) -> Connections
-buildConnections faces = M.empty
-
 type FaceLocation = (Int /\ Int) /\ Direction
-
-faceDistance :: Set (Int /\ Int) -> FaceLocation -> FaceLocation -> Int
-faceDistance faces = inner S.empty
-  where
-  inner :: Set FaceLocation -> FaceLocation -> FaceLocation -> Int
-  inner visited src dst | src == dst = 0
-  inner visited ((x /\ y) /\ dir) dst = 0
-
-  neighbouringFaces :: FaceLocation -> Array FaceLocation
-  neighbouringFaces ((x /\ y) /\ dir) =
-    [
-    ]
 
 connectionsTestInput :: Connections
 connectionsTestInput = M.fromFoldable do

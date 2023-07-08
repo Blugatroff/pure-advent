@@ -4,7 +4,6 @@ import MeLude
 
 import Data.Array as Array
 import Data.Either (blush)
-import Data.Foldable (fold)
 import Data.String as String
 import Data.String.Utils (startsWith)
 import Util (dedup, parseInt)

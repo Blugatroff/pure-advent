@@ -5,7 +5,6 @@ import MeLude
 import Data.Array as Array
 import Data.List as List
 import Data.String as String
-import Data.Traversable (sequence)
 import Util (mapSum)
 
 type Segment = Array Char

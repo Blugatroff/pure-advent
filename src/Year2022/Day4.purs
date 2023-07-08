@@ -4,7 +4,6 @@ import MeLude
 
 import Data.Array as Array
 import Data.String (trim)
-import Data.Tuple (uncurry)
 import Util (lines, parseInt, splitStringOnce)
 
 type Range = { start :: Int, end :: Int }

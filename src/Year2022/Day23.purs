@@ -3,7 +3,6 @@ module Year2022.Day23 (partOne, partTwo) where
 import MeLude
 
 import Data.Array as Array
-import Data.Function (applyN)
 import Data.HashMap as HM
 import Data.HashSet as HS
 import Data.TraversableWithIndex (forWithIndex)
