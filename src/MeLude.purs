@@ -23,6 +23,7 @@ module MeLude
   , module Data.Monoid
   , module Data.Unfoldable
   , module Data.Foldable
+  , module Data.String
   , module Data.String.CodeUnits
   , module Data.EuclideanRing
   , module Data.Boolean
@@ -34,6 +35,7 @@ module MeLude
 
   , module Control.Bind
   , module Control.Applicative
+  , module Control.Monad
   , module Control.Monad.ST
   , module Control.Alt
 
@@ -45,6 +47,7 @@ module MeLude
 
 import Control.Applicative (class Applicative, pure, unless, when, apply)
 import Control.Bind (bind, (>>=), (=<<), discard, join, (<=<), (>=>))
+import Control.Monad (class Monad)
 import Control.Monad.ST (ST)
 import Control.Alt ((<|>))
 import Data.Bifunctor (lmap)
@@ -52,8 +55,8 @@ import Data.Boolean (otherwise)
 import Data.Either (Either(..), note, either, hush)
 import Data.Eq (class Eq, eq, (==), (/=), notEq)
 import Data.EuclideanRing (class EuclideanRing, div, mod, gcd)
-import Data.Foldable (class Foldable, maximum, sum, all, product, for_, intercalate, minimumBy, foldM, foldMap)
-import Data.Function (($), (#), on, flip, identity, (>>>), (<<<), const)
+import Data.Foldable (class Foldable, maximum, maximumBy, sum, all, product, for_, intercalate, minimum, minimumBy, foldM, foldMap)
+import Data.Function (($), (#), on, flip, identity, (>>>), (<<<), const, applyN)
 import Data.Functor (class Functor, flap, map, void, ($>), (<#>), (<$), (<$>), (<@>))
 import Data.FunctorWithIndex (class FunctorWithIndex, mapWithIndex)
 import Data.HashMap (HashMap)
@@ -65,16 +68,17 @@ import Data.Map (Map)
 import Data.Maybe (Maybe(..), maybe, fromMaybe)
 import Data.Monoid (class Monoid, (<>), mempty)
 import Data.Newtype (class Newtype, unwrap)
-import Data.Ord (class Ord, compare, (<), (>), (<=), (>=), lessThan, lessThanOrEq, greaterThan, greaterThanOrEq, max, min)
+import Data.Ord (class Ord, compare, (<), (>), (<=), (>=), lessThan, lessThanOrEq, greaterThan, greaterThanOrEq, max, min, abs)
 import Data.Ordering (Ordering(..))
 import Data.Ring (class Ring, negate, sub, (-))
 import Data.Semigroup (class Semigroup, append)
 import Data.Semiring (class Semiring, add, mul, one, zero, (*), (+))
 import Data.Set (Set)
 import Data.Show (class Show, show)
+import Data.String (codePointFromChar)
 import Data.String.CodeUnits (fromCharArray, toCharArray)
 import Data.Traversable (class Traversable, foldl, fold, traverse, any, minimum, sequence_, traverse_, for, scanl)
-import Data.Tuple (Tuple, fst, snd)
+import Data.Tuple (Tuple, fst, snd, uncurry, curry)
 import Data.Tuple.Nested ((/\), type (/\))
 import Data.Unfoldable (class Unfoldable)
 import Data.Unit (Unit, unit)

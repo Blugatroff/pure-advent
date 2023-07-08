@@ -16,4 +16,4 @@ bundle:
     spago build --config ./prod.dhall 
     purs-backend-es build
     echo "#!/usr/bin/env node" > dist.js
-    echo "import { main } from './output/Main/index.js'; main();" | esbuild --bundle --platform=node --minify >> dist.js
+    echo "import { main } from './output-es/Main/index.js'; main();" | esbuild --bundle --platform=node --minify >> dist.js
