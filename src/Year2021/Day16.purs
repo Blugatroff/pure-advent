@@ -1,4 +1,4 @@
-module Year2021.Day16 (partOne, partTwo) where
+module Year2021.Day16 (day) where
 
 import MeLude
 
@@ -9,6 +9,7 @@ import Control.Monad.Trans.Class (lift)
 import Data.Array as Array
 import Data.List as List
 import Data.String as String
+import Day (makeDay)
 import JS.BigInt (BigInt, shl, or, toInt)
 
 type Bit = Boolean
@@ -172,9 +173,7 @@ solvePartOne bits = packetVersionSum <$> evalState (runExceptT parsePacket) bits
 solvePartTwo :: Bits -> String |? BigInt
 solvePartTwo bits = evalPacket <$> evalState (runExceptT parsePacket) bits
 
-partOne :: String -> String |? String
-partOne input = parse input >>= solvePartOne <#> show
-
-partTwo :: String -> String |? String
-partTwo input = parse input >>= solvePartTwo <#> show
+day = makeDay parse
+  (map show <<< solvePartOne)
+  (map show <<< solvePartTwo)
 

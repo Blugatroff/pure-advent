@@ -1,4 +1,4 @@
-module Year2022.Day10 (partOne, partTwo) where
+module Year2022.Day10 (day) where
 
 import MeLude
 
@@ -6,6 +6,7 @@ import Data.Array as Array
 import Data.List as List
 import Data.Map as M
 import Data.String as String
+import Day (makeDay)
 import Util (lines, parseInt, splitStringOnce)
 
 data Instruction = AddX Int | NoOp
@@ -90,8 +91,6 @@ solvePartTwo instructions = drawCrt $ runCpu sample M.empty cpu
     y = (cpu.cycleNumber - 1) `div` crtWidth
     value = (x >= (cpu.xRegister - 1)) && (x <= (cpu.xRegister + 1))
 
-partOne :: String -> String |? String
-partOne input = parse input <#> solvePartOne <#> show
-
-partTwo :: String -> String |? String
-partTwo input = parse input <#> solvePartTwo
+day = makeDay parse
+  (Right <<< show <<< solvePartOne)
+  (Right <<< solvePartTwo)

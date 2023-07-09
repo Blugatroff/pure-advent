@@ -78,14 +78,10 @@ traceWith label map value = unsafePerformEffect do
   Console.error $ label <> ": " <> map value
   pure value
 
+foreign import traceRuntimeImpl :: forall a b. Effect Number -> (String -> Effect Unit) -> String -> (a -> b) -> (a -> b)
+
 traceRuntime :: forall a b. String -> (a -> b) -> (a -> b)
-traceRuntime label f a = unsafePerformEffect do
-  start <- liftEffect $ unwrap <<< Instant.unInstant <$> Now.now
-  result <- pure $ f a
-  end <- liftEffect $ unwrap <<< Instant.unInstant <$> Now.now
-  let duration = end - start
-  Console.error $ label <> ": " <> show duration
-  pure $ result
+traceRuntime = traceRuntimeImpl (unwrap <<< Instant.unInstant <$> Now.now) Console.error
 
 split :: forall a. Eq a => a -> List a -> List (List a)
 split _ Nil = Nil

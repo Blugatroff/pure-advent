@@ -1,4 +1,4 @@
-module Year2022.Day15 (partOne, partTwo) where
+module Year2022.Day15 (day) where
 
 import MeLude
 
@@ -6,6 +6,7 @@ import Data.Array as Array
 import Data.CodePoint.Unicode (isDecDigit)
 import Data.List as List
 import Data.String as String
+import Day (makeDay)
 import JS.BigInt (BigInt, fromInt)
 import Util (TransparentString(..), lines, parseInt, splitStringOnce)
 
@@ -103,9 +104,8 @@ rangesFromSensors y = List.mapMaybe $ rangeFromSensor y
 isTestInput :: forall f. Foldable f => f Sensor -> Boolean
 isTestInput = all (_.sensor >>> _.x >>> (_ `lessThan` 100000))
 
-part :: forall a. Show a => (Int -> List Sensor -> a) -> Int -> Int -> String -> Either String String
-part solve a b input = parse input
-  <#> \sensors -> show $ solve (if isTestInput sensors then a else b) sensors
+part :: forall a. Show a => (Int -> List Sensor -> a) -> Int -> Int -> List Sensor -> String
+part solve a b sensors = show $ solve (if isTestInput sensors then a else b) sensors
 
 solvePartOne :: Int -> List Sensor -> Int
 solvePartOne ySlice sensors = sum $ rangeSize <$> tryMergeAll (List.fromFoldable ranges)
@@ -126,8 +126,7 @@ solvePartTwo bounds sensors = TransparentString $ maybe "No solution found" show
     $ tryMergeAll
     $ rangesFromSensors y sensors
 
-partOne ∷ String → Either String String
-partOne = part solvePartOne 10 2000000
+day = makeDay parse
+  (Right <<< part solvePartOne 10 2000000)
+  (Right <<< part solvePartTwo 10 4000000)
 
-partTwo ∷ String → Either String String
-partTwo = part solvePartTwo 20 4000000

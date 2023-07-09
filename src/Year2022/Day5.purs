@@ -1,4 +1,4 @@
-module Year2022.Day5 (partOne, partTwo) where
+module Year2022.Day5 (day) where
 
 import MeLude
 
@@ -7,6 +7,7 @@ import Data.List as List
 import Data.Map as M
 import Data.String (Replacement(..), Pattern(..))
 import Data.String as String
+import Day (makeDay)
 import Util (lines, parseInt, splitOnce)
 
 transposeStacks :: Array String -> Array Stack
@@ -74,8 +75,6 @@ solvePartOne = solve Array.reverse
 solvePartTwo :: M.Map Int Stack /\ List Move -> String
 solvePartTwo = solve identity
 
-partOne :: String -> String |? String
-partOne input = parse input <#> solvePartOne
-
-partTwo :: String -> String |? String
-partTwo input = parse input <#> solvePartTwo
+day = makeDay parse
+  (Right <<< solvePartOne)
+  (Right <<< solvePartTwo)

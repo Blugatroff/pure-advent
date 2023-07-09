@@ -1,4 +1,4 @@
-module Year2021.Day13 (partOne, partTwo) where
+module Year2021.Day13 (day) where
 
 import MeLude
 
@@ -6,6 +6,7 @@ import Data.Array as Array
 import Data.Either (blush)
 import Data.String as String
 import Data.String.Utils (startsWith)
+import Day (makeDay)
 import Util (dedup, parseInt)
 
 data Fold = FoldAlongX Int | FoldAlongY Int
@@ -88,6 +89,7 @@ showPaper dots =
 measurePaper :: Dots -> PaperSize
 measurePaper dots = (fromMaybe zero $ maximum $ map fst dots) /\ (fromMaybe zero $ maximum $ map snd dots)
 
-partOne = parse >>> map (solvePartOne >>> show)
-partTwo = parse >>> map solvePartTwo
+day = makeDay parse
+  (Right <<< show <<< solvePartOne)
+  (Right <<< solvePartTwo)
 

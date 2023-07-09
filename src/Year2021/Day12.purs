@@ -1,9 +1,9 @@
-module Year2021.Day12 (partOne, partTwo) where
+module Year2021.Day12 (day) where
 
 import MeLude hiding ((:))
 
-import Data.Array as Array
 import Data.Array ((:))
+import Data.Array as Array
 import Data.CodePoint.Unicode (isUpper)
 import Data.Foldable (foldr)
 import Data.List as List
@@ -11,6 +11,7 @@ import Data.Map as M
 import Data.Set as S
 import Data.String (toCodePointArray)
 import Data.String as String
+import Day (makeDayWithCommonPart)
 import Util (nonEmptyLines)
 
 data Node = Small String | Big String
@@ -81,5 +82,7 @@ countPaths joker = inner joker S.empty List.Nil (node "start") (node "end")
       (false /\ true) -> Nothing
       (true /\ true) -> Nothing
 
-partOne input = parse input <#> buildCave >>> countPaths true >>> show
-partTwo input = parse input <#> buildCave >>> countPaths false >>> show
+day = makeDayWithCommonPart parse (Right <<< buildCave)
+    (Right <<< show <<< countPaths true)
+    (Right <<< show <<< countPaths false)
+

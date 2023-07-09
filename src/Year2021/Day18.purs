@@ -1,4 +1,4 @@
-module Year2021.Day18 (partOne, partTwo) where
+module Year2021.Day18 (day) where
 
 import MeLude
 
@@ -9,6 +9,7 @@ import Data.Generic.Rep (class Generic)
 import Data.List as List
 import Data.Show.Generic (genericShow)
 import Data.String as String
+import Day (makeDay)
 import Util (mapFst, reduceL)
 import Util as Util
 
@@ -191,28 +192,28 @@ explode location element = case explodingPair of
 findBigRegularNumbers :: Element -> Array Location
 findBigRegularNumbers = map fst <<< Array.filter (test <<< snd) <<< elementsWithLocation
   where
-    test :: Element -> Boolean
-    test (Number n) | n >= 10 = true
-    test _notABigNumber = false
+  test :: Element -> Boolean
+  test (Number n) | n >= 10 = true
+  test _notABigNumber = false
 
 splitElement :: Location -> Element -> Element
 splitElement location = fst <<< replaceElement location splitter
   where
-    splitter :: Element -> Element
-    splitter (Number n) = Pair (Number (n `div` 2)) (Number (n - (n `div` 2)))
-    splitter element = element
+  splitter :: Element -> Element
+  splitter (Number n) = Pair (Number (n `div` 2)) (Number (n - (n `div` 2)))
+  splitter element = element
 
 reduceElement :: Element -> Element
 reduceElement element = maybe element reduceElement (step element)
   where
-    step :: Element -> Maybe Element
-    step element = exploded <|> splitted
-      where
-        exploding = Array.head (map fst $ Array.filter (isPair <<< snd) $ inDepth 4 element)
-        exploded = exploding <#> (_ `explode` element)
+  step :: Element -> Maybe Element
+  step element = exploded <|> splitted
+    where
+    exploding = Array.head (map fst $ Array.filter (isPair <<< snd) $ inDepth 4 element)
+    exploded = exploding <#> (_ `explode` element)
 
-        toSplit = Array.head $ findBigRegularNumbers element
-        splitted = toSplit <#> (_ `splitElement` element)
+    toSplit = Array.head $ findBigRegularNumbers element
+    splitted = toSplit <#> (_ `splitElement` element)
 
 addElements :: Element -> Element -> Element
 addElements a b = reduceElement $ Pair a b
@@ -234,6 +235,6 @@ solvePartTwo =
     >>> maximum
     >>> fromMaybe 0
 
-partOne = parse >>> map solvePartOne >>> map show
-partTwo = parse >>> map solvePartTwo >>> map show
-
+day = makeDay parse
+  (Right <<< show <<< solvePartOne)
+  (Right <<< show <<< solvePartTwo)

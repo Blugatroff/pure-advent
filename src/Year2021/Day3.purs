@@ -1,4 +1,4 @@
-module Year2021.Day3 (partOne, partTwo) where
+module Year2021.Day3 (day) where
 
 import MeLude
 
@@ -6,6 +6,7 @@ import Data.Array.NonEmpty as NonEmptyArray
 import Data.List (transpose)
 import Data.List as List
 import Data.Maybe as Maybe
+import Day (makeDay)
 import Parsing (Parser, runParser)
 import Parsing.Combinators (optional)
 import Parsing.Combinators.Array (many, many1)
@@ -74,9 +75,7 @@ scrubberRating = fromBits <<< ratingFromBitCriteria scrubberBitCriteria
 solvePartTwo :: List (List Boolean) -> Int
 solvePartTwo numbers = oxyRating numbers * scrubberRating numbers
 
-partOne :: String -> String |? String
-partOne input = parse input <#> solvePartOne <#> show
-
-partTwo :: String -> String |? String
-partTwo input = parse input <#> solvePartTwo <#> show
+day = makeDay parse
+  (Right <<< show <<< solvePartOne)
+  (Right <<< show <<< solvePartTwo)
 

@@ -1,4 +1,4 @@
-module Year2022.Day8 (partOne, partTwo) where
+module Year2022.Day8 (day) where
 
 import MeLude
 
@@ -6,6 +6,7 @@ import Data.Array as Array
 import Data.String (Pattern(..))
 import Data.String as String
 import Data.String.CodeUnits as SC
+import Day (makeDay)
 import Util (parseInt)
 
 type Grid = Array (Array Int)
@@ -64,8 +65,7 @@ solvePartOne grid = gridPositions grid # Array.filter (isVisible grid) # Array.l
 solvePartTwo :: Grid -> Int
 solvePartTwo grid = gridPositions grid <#> scenicScore grid # maximum # fromMaybe 0
 
-partOne :: String -> String |? String
-partOne input = parse input <#> solvePartOne <#> show
+day = makeDay parse
+  (Right <<< show <<< solvePartOne)
+  (Right <<< show <<< solvePartTwo)
 
-partTwo :: String -> String |? String
-partTwo input = parse input <#> solvePartTwo <#> show

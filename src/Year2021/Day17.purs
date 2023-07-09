@@ -1,10 +1,11 @@
-module Year2021.Day17 (partOne, partTwo) where
+module Year2021.Day17 (day) where
 
 import MeLude
 
 import Data.Array as Array
 import Data.List as List
 import Data.String as String
+import Day (makeDay)
 import Util (parseInt, sign, splitStringOnce)
 
 type Target = { minX :: Int, maxX :: Int, minY :: Int, maxY :: Int }
@@ -57,14 +58,14 @@ findBestShot steps = steps <#> (\shot -> (shotScore shot) /\ shot) # maximumBy (
 
 scanRange :: Target -> Array Shot
 scanRange target = do
-  vx <- xrange 
-  Array.range target.minY 2000 
+  vx <- xrange
+  Array.range target.minY 2000
     # Array.mapMaybe \vy -> shoot target ((0 /\ 0) /\ (vx /\ vy))
   where
-    xrange
-      | target.minX > 0 = Array.range 0 target.maxX
-      | target.maxX < 0 = Array.range 0 (abs target.minX) <#> negate
-      | otherwise = Array.range target.minX target.maxX
+  xrange
+    | target.minX > 0 = Array.range 0 target.maxX
+    | target.maxX < 0 = Array.range 0 (abs target.minX) <#> negate
+    | otherwise = Array.range target.minX target.maxX
 
 solvePartOne :: Target -> Int
 solvePartOne = maybe 0 fst <<< findBestShot <<< scanRange
@@ -72,8 +73,6 @@ solvePartOne = maybe 0 fst <<< findBestShot <<< scanRange
 solvePartTwo :: Target -> Int
 solvePartTwo = Array.length <<< scanRange
 
-partOne :: String -> String |? String
-partOne = parse >>> map (solvePartOne >>> show)
-
-partTwo :: String -> String |? String
-partTwo = parse >>> map (solvePartTwo >>> show)
+day = makeDay parse
+  (Right <<< show <<< solvePartOne)
+  (Right <<< show <<< solvePartTwo)

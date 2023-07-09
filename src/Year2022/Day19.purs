@@ -1,4 +1,4 @@
-module Year2022.Day19 (partOne, partTwo) where
+module Year2022.Day19 (day) where
 
 import MeLude
 
@@ -8,6 +8,7 @@ import Data.Heap as Heap
 import Data.List as List
 import Data.Set as S
 import Data.Show.Generic (genericShow)
+import Day (makeDay)
 import Parsing (Parser, runParser)
 import Parsing.Combinators (optional)
 import Parsing.Combinators.Array (many)
@@ -242,6 +243,6 @@ solvePartOne blueprints = sum $ map scoreBlueprint blueprints
 solvePartTwo ∷ Array Blueprint → Int
 solvePartTwo blueprints = product $ map (stateProduced <<< solveBlueprint 32) $ Array.slice 0 3 blueprints
 
-partOne = flip runParser parser >>> lmap show >>> map solvePartOne >>> map show
-partTwo = flip runParser parser >>> lmap show >>> map solvePartTwo >>> map show
-
+day = makeDay (flip runParser parser >>> lmap show)
+  (Right <<< show <<< solvePartOne)
+  (Right <<< show <<< solvePartTwo)

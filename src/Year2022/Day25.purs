@@ -1,7 +1,8 @@
-module Year2022.Day25 (partOne, partTwo) where
+module Year2022.Day25 (day) where
 
 import MeLude
 
+import Day (makeDay)
 import JS.BigInt (BigInt, fromInt, toInt)
 import Util (nonEmptyLines)
 
@@ -61,6 +62,6 @@ showSnafu = foldMap show
 solvePartOne :: Array (Array SnafuDigit) -> String
 solvePartOne snafus = showSnafu (intToSnafu (sum (map snafuToInt snafus)))
 
-partOne = parse >>> map solvePartOne
-partTwo = const $ Left "This puzzle doesn't have part two"
-
+day = makeDay parse
+  (Right <<< solvePartOne)
+  (const $ Right "This puzzle doesn't have part two")

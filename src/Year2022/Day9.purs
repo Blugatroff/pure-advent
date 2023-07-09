@@ -1,4 +1,4 @@
-module Year2022.Day9 (partOne, partTwo) where
+module Year2022.Day9 (day) where
 
 import MeLude
 
@@ -7,6 +7,7 @@ import Data.List as List
 import Data.List.NonEmpty as NE
 import Data.NonEmpty ((:|))
 import Data.String as String
+import Day (makeDay)
 import Util (dedup, lines, mapFst, mapSnd, mapWithPrevious, parseInt, sign, splitStringOnce)
 
 data Instruction = U | D | L | R
@@ -77,8 +78,6 @@ solve tailLength instructions = foldl fold (startRope /\ Nil) instructions # snd
     movedRope = executeInstruction rope instruction
     visited = NE.last movedRope
 
-partOne :: String -> String |? String
-partOne input = parse input <#> solve 1 <#> show
-
-partTwo :: String -> String |? String
-partTwo input = parse input <#> solve 9 <#> show
+day = makeDay parse
+  (Right <<< show <<< solve 1)
+  (Right <<< show <<< solve 9)

@@ -1,4 +1,4 @@
-module Year2022.Day14 (partOne, partTwo) where
+module Year2022.Day14 (day) where
 
 import MeLude
 
@@ -9,6 +9,7 @@ import Data.List as List
 import Data.Map.Native.ST (NativeMapST)
 import Data.Map.Native.ST as NativeMapST
 import Data.String as String
+import Day (makeDay)
 import Util (lines, parseInt, splitStringOnce, windows2)
 
 type Pos = { x :: Int, y :: Int }
@@ -158,8 +159,7 @@ solvePartTwo paths = ST.run do
     Just _ -> pure $ Done n
     Nothing -> simulateSand floor { x: 500, y: 0 } cave $> Loop (n + 1)
 
-partOne ∷ String → Either String String
-partOne = parse >>> map solvePartOne
+day = makeDay parse
+  (Right <<< solvePartOne)
+  (Right <<< show <<< solvePartTwo)
 
-partTwo ∷ String → Either String String
-partTwo = parse >>> map solvePartTwo >>> map show

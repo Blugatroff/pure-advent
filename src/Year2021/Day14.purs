@@ -1,4 +1,4 @@
-module Year2021.Day14 (partOne, partTwo) where
+module Year2021.Day14 (day) where
 
 import MeLude
 
@@ -7,6 +7,7 @@ import Data.Array as Array
 import Data.List as List
 import Data.Map as M
 import Data.String as String
+import Day (makeDay)
 import JS.BigInt (BigInt, fromInt)
 import Util (dedupCount, mapFst, mapSnd, toCharUnfoldable, windows2, repeatM)
 
@@ -71,6 +72,7 @@ solve n input =
   where
   initialState = (getPairs input.template) /\ map fromInt (M.fromFoldable (dedupCount input.template :: Array _))
 
-partOne input = parse input <#> solve 10 >>> show
-partTwo input = parse input <#> solve 40 >>> show
+day = makeDay parse
+  (Right <<< show <<< solve 10)
+  (Right <<< show <<< solve 40)
 

@@ -1,4 +1,4 @@
-module Year2022.Day22 (partOne, partTwo) where
+module Year2022.Day22 (day) where
 
 import MeLude
 
@@ -11,6 +11,7 @@ import Data.Set as S
 import Data.Show.Generic (genericShow)
 import Data.String as String
 import Data.String.Utils (lines)
+import Day (makeDay)
 import Util (maximumOrZero, minimumOrZero, parseInt)
 
 data Instruction = TurnLeft | TurnRight | Move Int
@@ -317,9 +318,8 @@ solvePartTwo (board /\ path) = do
   face /\ start <- note "failed to find start" $ findStartOnCube cube
   let startCursor = { direction: DirRight, pos: start, face }
   let end = foldl (executeInstructionOnCube cube) startCursor path
-  -- let markings = M.fromFoldable $ map (\cursor -> (cursor.face /\ cursor.pos) /\ cursor.direction) $ [ startCursor ] <> cursors
-  -- void $ Left $ showCube markings cube
   Right $ scoreOnCube cube end
 
-partOne input = parse input >>= solvePartOne >>> map show
-partTwo input = parse input >>= solvePartTwo >>> map show
+day = makeDay parse
+  (map show <<< solvePartOne)
+  (map show <<< solvePartTwo)

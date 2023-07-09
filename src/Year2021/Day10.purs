@@ -1,4 +1,4 @@
-module Year2021.Day10 (partOne, partTwo) where
+module Year2021.Day10 (day) where
 
 import MeLude
 
@@ -6,6 +6,7 @@ import Data.Array as Array
 import Data.List as List
 import Data.NonEmpty (NonEmpty, (:|))
 import Data.String as String
+import Day (makeDay)
 import JS.BigInt (BigInt, fromInt)
 import Util (median)
 
@@ -101,5 +102,7 @@ solvePartTwo lines = fromMaybe zero $ median $ Array.mapMaybe (errorPoints <=< l
   parenPoints Brace = 3
   parenPoints Triangle = 4
 
-partOne input = parse input <#> solvePartOne <#> show
-partTwo input = parse input <#> solvePartTwo <#> show
+day = makeDay parse
+  (Right <<< show <<< solvePartOne)
+  (Right <<< show <<< solvePartTwo)
+

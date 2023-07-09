@@ -1,4 +1,4 @@
-module Year2022.Day16 (partOne, partTwo) where
+module Year2022.Day16 (day) where
 
 import MeLude
 
@@ -8,6 +8,7 @@ import Data.HashMap as M
 import Data.HashSet as S
 import Data.List as List
 import Data.List.NonEmpty as NEL
+import Day (makeDayWithCommonPart)
 import Parsing (Parser, runParser)
 import Parsing.Combinators (many, optional, replicateM, sepBy1)
 import Parsing.String (string)
@@ -164,15 +165,15 @@ solvePartTwo network paths = fromMaybe (-1) $ bestPressure
     # map (\((_ /\ human) /\ (_ /\ elephant)) -> human + elephant)
     # maximum
 
-part :: (Network -> Paths -> Int) -> String -> String |? String
-part solve input = do
-  valves <- lmap show $ runParser input parser
+common :: Valves -> Network /\ Paths
+common valves = do
   let network = createNetwork valves
   let paths = findPaths network
-  pure $ show $ solve network paths
+  network /\ paths
 
-partOne ∷ String → String |? String
-partOne = part solvePartOne
+day = makeDayWithCommonPart 
+  (lmap show <<< flip runParser parser) 
+  (Right <<< common)
+  (Right <<< show <<< uncurry solvePartOne)
+  (Right <<< show <<< uncurry solvePartTwo)
 
-partTwo ∷ String → String |? String
-partTwo = part solvePartTwo

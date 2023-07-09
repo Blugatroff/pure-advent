@@ -3,7 +3,7 @@ module Year2021 (days) where
 import MeLude
 
 import Data.Map as Map
-import Day (Day(..), Index(..))
+import Day (Day, Index(..))
 
 import Year2021.Day1 as Day1
 import Year2021.Day2 as Day2
@@ -27,23 +27,23 @@ import Year2021.Day19 as Day19
 
 days ∷ Map.Map (Index Day) Day
 days = Map.fromFoldable $ map (lmap Index)
-  [ 1 /\ Day Day1.partOne Day1.partTwo
-  , 2 /\ Day Day2.partOne Day2.partTwo
-  , 3 /\ Day Day3.partOne Day3.partTwo
-  , 4 /\ Day Day4.partOne Day4.partTwo
-  , 5 /\ Day Day5.partOne Day5.partTwo
-  , 6 /\ Day Day6.partOne Day6.partTwo
-  , 7 /\ Day Day7.partOne Day7.partTwo
-  , 8 /\ Day Day8.partOne Day8.partTwo
-  , 9 /\ Day Day9.partOne Day9.partTwo
-  , 10 /\ Day Day10.partOne Day10.partTwo
-  , 11 /\ Day Day11.partOne Day11.partTwo
-  , 12 /\ Day Day12.partOne Day12.partTwo
-  , 13 /\ Day Day13.partOne Day13.partTwo
-  , 14 /\ Day Day14.partOne Day14.partTwo
-  , 15 /\ Day Day15.partOne Day15.partTwo
-  , 16 /\ Day Day16.partOne Day16.partTwo
-  , 17 /\ Day Day17.partOne Day17.partTwo
-  , 18 /\ Day Day18.partOne Day18.partTwo
-  , 19 /\ Day Day19.partOne Day19.partTwo
+  [ 1 /\ Day1.day
+  , 2 /\ Day2.day
+  , 3 /\ Day3.day
+  , 4 /\ Day4.day
+  , 5 /\ Day5.day
+  , 6 /\ Day6.day
+  , 7 /\ Day7.day
+  , 8 /\ Day8.day
+  , 9 /\ Day9.day
+  , 10 /\ Day10.day
+  , 11 /\ Day11.day
+  , 12 /\ Day12.day
+  , 13 /\ Day13.day
+  , 14 /\ Day14.day
+  , 15 /\ Day15.day
+  , 16 /\ Day16.day
+  , 17 /\ Day17.day
+  , 18 /\ Day18.day
+  , 19 /\ Day19.day
   ]

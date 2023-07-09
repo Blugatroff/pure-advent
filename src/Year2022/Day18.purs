@@ -1,4 +1,4 @@
-module Year2022.Day18 (partOne, partTwo) where
+module Year2022.Day18 (day) where
 
 import MeLude
 
@@ -6,6 +6,7 @@ import Data.Array as Array
 import Data.List as List
 import Data.Set as S
 import Data.String as String
+import Day (makeDay)
 import Util (lines, parseInt)
 
 type Pos = { x :: Int, y :: Int, z :: Int }
@@ -77,8 +78,7 @@ solvePartTwo cubes = Array.length $ Array.filter test $ neighbours =<< S.toUnfol
 
   test pos = S.member pos air && (not (S.member pos cubes))
 
-partOne ∷ String → String |? String
-partOne input = parse input <#> solvePartOne <#> show
+day = makeDay parse
+  (Right <<< show <<< solvePartOne)
+  (Right <<< show <<< solvePartTwo)
 
-partTwo ∷ String → String |? String
-partTwo input = parse input <#> solvePartTwo <#> show

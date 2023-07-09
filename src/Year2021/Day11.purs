@@ -1,10 +1,11 @@
-module Year2021.Day11 (partOne, partTwo) where
+module Year2021.Day11 (day) where
 
 import MeLude
 
 import Data.Array as Array
 import Data.Foldable (foldr)
 import Data.String.CodeUnits as StringCodeUnits
+import Day (makeDay)
 import Util (mapSnd, parseInt, nonEmptyLines)
 
 type Grid = Array (Array Int)
@@ -58,5 +59,7 @@ solvePartTwo = f 1
     height = Array.length grid
     width = maybe 0 Array.length $ Array.head grid
 
-partOne input = parse input <#> solvePartOne >>> show
-partTwo input = parse input <#> solvePartTwo >>> show
+day = makeDay parse
+  (Right <<< show <<< solvePartOne)
+  (Right <<< show <<< solvePartTwo)
+

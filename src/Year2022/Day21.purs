@@ -1,9 +1,11 @@
-module Year2022.Day21 (partOne, partTwo) where
+module Year2022.Day21 (day) where
 
 import MeLude
+
 import Data.Array as Array
 import Data.Map as M
 import Data.String as String
+import Day (makeDay)
 import JS.BigInt (BigInt, fromInt)
 import Util (nonEmptyLines, parseInt, splitStringOnce)
 
@@ -119,8 +121,6 @@ solvePartTwo monkeys = do
     false, true -> Just $ rc /\ lc
   evaluate $ peelCalculation humn constant
 
-solve f = parse >>> map (f >>> map show >>> fromMaybe "No solution found!")
+solve f = f >>> map show >>> note "No solution found!"
 
-partOne = solve solvePartOne
-partTwo = solve solvePartTwo
-
+day = makeDay parse (solve solvePartOne) (solve solvePartTwo)

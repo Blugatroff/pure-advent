@@ -1,4 +1,4 @@
-module Year2022.Day17 (partOne, partTwo) where
+module Year2022.Day17 (day) where
 
 import MeLude
 
@@ -15,6 +15,7 @@ import Data.Map as M
 import Data.NonEmpty ((:|))
 import Data.Set as S
 import Data.String.CodeUnits (fromCharArray, toCharArray) as String
+import Day (makeDay)
 import JS.BigInt (BigInt, fromInt, pow)
 import Util (dedup, fromBigInt, tailRec0)
 
@@ -300,10 +301,8 @@ solvePartTwo n = do
 
   pure $ show $ fromInt h + skippedHeight
 
-partOne :: String -> String |? String
-partOne = Right <<< show <<< evalState (solvePartOne 2022) <<< (\jets -> { chamber: emptyChamber, shapes, count: 0, jets }) <<< parse
-
 trillion = fromInt 10 `pow` fromInt 12
 
-partTwo :: String -> String |? String
-partTwo = Right <<< evalState (solvePartTwo trillion) <<< (\jets -> { chamber: emptyChamber, shapes, count: 0, jets }) <<< parse
+day = makeDay (Right <<< (\jets -> { chamber: emptyChamber, shapes, count: 0, jets }) <<< parse)
+  (Right <<< show <<< evalState (solvePartOne 2022))
+  (Right <<< evalState (solvePartTwo trillion))

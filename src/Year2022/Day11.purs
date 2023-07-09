@@ -1,4 +1,4 @@
-module Year2022.Day11 (partOne, partTwo) where
+module Year2022.Day11 (day) where
 
 import MeLude
 
@@ -9,6 +9,7 @@ import Data.CodePoint.Unicode (isDecDigit)
 import Data.List as List
 import Data.Map as M
 import Data.String as String
+import Day (makeDay)
 import JS.BigInt (BigInt, fromInt)
 import Util (indexed, lines, parseInt, splitStringOnce)
 
@@ -132,8 +133,6 @@ solvePartTwo monkeys =
   where
   modBase = monkeys <#> _.test # product
 
-partOne :: String -> String |? String
-partOne input = parse input <#> indexed <#> M.fromFoldable <#> solvePartOne <#> show
-
-partTwo :: String -> String |? String
-partTwo input = parse input <#> indexed <#> M.fromFoldable <#> solvePartTwo <#> show
+day = makeDay parse
+  (Right <<< show <<< solvePartOne <<< M.fromFoldable <<< indexed)
+  (Right <<< show <<< solvePartTwo <<< M.fromFoldable <<< indexed)

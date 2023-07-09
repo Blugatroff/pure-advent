@@ -1,10 +1,11 @@
-module Year2021.Day8 (partOne, partTwo) where
+module Year2021.Day8 (day) where
 
 import MeLude
 
 import Data.Array as Array
 import Data.List as List
 import Data.String as String
+import Day (makeDay)
 import Util (mapSum)
 
 type Segment = Array Char
@@ -98,5 +99,7 @@ solvePartOne = mapSum (snd >>> mapSum (Array.length >>> isSimpleDigit))
 solvePartTwo :: Array (Array Segment /\ Array Segment) -> Maybe Int
 solvePartTwo = sum <<< map solveLine
 
-partOne input = parse input <#> solvePartOne >>> show
-partTwo input = parse input <#> solvePartTwo >>> maybe "No Solution found" show
+day = makeDay parse
+  (Right <<< solvePartOne >>> show)
+  (Right <<< solvePartTwo >>> maybe "No solution found" show)
+

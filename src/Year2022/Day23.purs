@@ -1,4 +1,4 @@
-module Year2022.Day23 (partOne, partTwo) where
+module Year2022.Day23 (day) where
 
 import MeLude
 
@@ -6,6 +6,7 @@ import Data.Array as Array
 import Data.HashMap as HM
 import Data.HashSet as HS
 import Data.TraversableWithIndex (forWithIndex)
+import Day (makeDay)
 import Util (dedupCount, nonEmptyLines)
 
 type Board = HS.HashSet (Int /\ Int)
@@ -113,5 +114,6 @@ solvePartTwo = add 1 <<< f 0
     where
     newBoard = runRound n board
 
-partOne = parse >>> map (solvePartOne 10 >>> show)
-partTwo = parse >>> map (solvePartTwo >>> show)
+day = makeDay parse
+  (Right <<< show <<< solvePartOne 10)
+  (Right <<< show <<< solvePartTwo)

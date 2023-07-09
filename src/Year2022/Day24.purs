@@ -1,4 +1,4 @@
-module Year2022.Day24 (partOne, partTwo) where
+module Year2022.Day24 (day) where
 
 import MeLude
 
@@ -11,6 +11,7 @@ import Data.Map as M
 import Data.Primitive (class PrimitiveKey)
 import Data.Show.Generic (genericShow)
 import Data.TraversableWithIndex (forWithIndex)
+import Day (makeDay)
 import Dijkstra (class World, Cell(..), findPath)
 import Util (nonEmptyLines)
 
@@ -147,5 +148,6 @@ solve startPhase valley = do
   let solution = findPath ValleyWorld startPos
   maybe "No Solution Found!" (_.cost >>> (_ - 1) >>> show) solution
 
-partOne = parse >>> map (solve ToGoalSecond)
-partTwo = parse >>> map (solve ToGoalFirst)
+day = makeDay parse
+  (Right <<< solve ToGoalSecond)
+  (Right <<< solve ToGoalFirst)

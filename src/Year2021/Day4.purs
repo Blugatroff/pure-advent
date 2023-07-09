@@ -1,4 +1,4 @@
-module Year2021.Day4 (partOne, partTwo) where
+module Year2021.Day4 (day) where
 
 import MeLude
 
@@ -6,6 +6,7 @@ import Data.Array as Array
 import Data.List as List
 import Data.String as String
 import Data.String.Utils (padStart)
+import Day (makeDay)
 import Util (chunks, parseInt)
 
 newtype Slot = Slot { marked :: Boolean, n :: Int }
@@ -113,9 +114,8 @@ reportFailure :: forall a. Show a => Maybe a -> String
 reportFailure Nothing = "No solution found"
 reportFailure (Just a) = show a
 
-partOne :: String -> String |? String
-partOne input = parse input <#> solvePartOne >>> reportFailure
+day = makeDay parse
+  (Right <<< reportFailure <<< solvePartOne)
+  (Right <<< reportFailure <<< solvePartTwo)
 
-partTwo :: String -> String |? String
-partTwo input = parse input <#> solvePartTwo >>> reportFailure
 

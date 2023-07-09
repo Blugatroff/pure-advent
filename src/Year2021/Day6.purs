@@ -1,12 +1,12 @@
-module Year2021.Day6 (partOne, partTwo) where
+module Year2021.Day6 (day) where
 
 import MeLude
 
-import Data.List (fromFoldable)
 import Data.List as List
 import Data.List.Lazy as LazyList
 import Data.Map as M
 import Data.String as String
+import Day (makeDay)
 import JS.BigInt (BigInt, fromInt)
 import Util (dedupCount, mapSnd, parseInt)
 
@@ -38,6 +38,8 @@ solvePartTwo days fish = fromMaybe zero
   $ M.fromFoldable 
   $ (map (mapSnd fromInt) (dedupCount fish) :: Array (Int /\ BigInt))
 
-partOne input = parse input <#> fromFoldable >>> solvePartTwo 80 >>> show
-partTwo input = parse input <#> fromFoldable >>> solvePartTwo 256 >>> show
+day = makeDay parse
+  (Right <<< show <<< solvePartTwo 80)
+  (Right <<< show <<< solvePartTwo 256)
+
 

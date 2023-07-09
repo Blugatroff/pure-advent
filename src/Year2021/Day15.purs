@@ -1,10 +1,11 @@
-module Year2021.Day15 (partOne, partTwo) where
+module Year2021.Day15 (day) where
 
 import MeLude
 
 import Data.Array as Array
-import Data.String as String
 import Data.Pos (Pos(Pos))
+import Data.String as String
+import Day (makeDay)
 import Dijkstra (class World, Cell(..), findPath)
 import Util (parseInt)
 
@@ -47,5 +48,7 @@ tileCave c@(Cave cave) = Cave { cells, width: cave.width * 5, height: cave.heigh
 
 solvePartTwo = tileCave >>> solvePartOne
 
-partOne = parse >>> map solvePartOne >>> map (maybe "No Solution found!" show)
-partTwo = parse >>> map solvePartTwo >>> map (maybe "No Solution found!" show)
+day = makeDay parse
+  (map show <<< note "No Solution found!" <<< solvePartOne)
+  (map show <<< note "No Solution found!" <<< solvePartTwo)
+

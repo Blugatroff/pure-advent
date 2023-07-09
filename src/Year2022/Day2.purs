@@ -1,8 +1,9 @@
-module Year2022.Day2 (partOne, partTwo) where
+module Year2022.Day2 (day) where
 
 import MeLude
 
 import Data.Map as M
+import Day (makeDay)
 import Parsing (Parser, runParser)
 import Parsing.Combinators (choice, many, optional, (<??>))
 import Parsing.String (char)
@@ -92,8 +93,6 @@ solvePartTwo lines = map gameScore lines # sum
     outcome = play (a /\ chosen)
     score = shapeScore chosen + outcomeScore outcome
 
-partOne :: String -> String |? String
-partOne input = parse input <#> solvePartOne <#> show
-
-partTwo :: String -> String |? String
-partTwo input = parse input <#> solvePartTwo <#> show
+day = makeDay parse
+  (Right <<< show <<< solvePartOne)
+  (Right <<< show <<< solvePartTwo)

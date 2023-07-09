@@ -1,9 +1,10 @@
-module Year2022.Day4 (partOne, partTwo) where
+module Year2022.Day4 (day) where
 
 import MeLude
 
 import Data.Array as Array
 import Data.String (trim)
+import Day (makeDay)
 import Util (lines, parseInt, splitStringOnce)
 
 type Range = { start :: Int, end :: Int }
@@ -46,8 +47,6 @@ solvePartOne lines = lines # Array.filter (uncurry rangesContainEachOther) # Arr
 solvePartTwo :: Array (Range /\ Range) -> Int
 solvePartTwo lines = lines # Array.filter (uncurry rangesOverlap) # Array.length
 
-partOne :: String -> String |? String
-partOne input = parse input <#> solvePartOne <#> show
-
-partTwo :: String -> String |? String
-partTwo input = parse input <#> solvePartTwo <#> show
+day = makeDay parse
+  (Right <<< show <<< solvePartOne)
+  (Right <<< show <<< solvePartTwo)

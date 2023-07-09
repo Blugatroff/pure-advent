@@ -1,4 +1,4 @@
-module Year2021.Day19 (partOne, partTwo) where
+module Year2021.Day19 (day) where
 
 import MeLude
 
@@ -8,7 +8,8 @@ import Data.Array as Array
 import Data.CodePoint.Unicode (isNumber)
 import Data.Pos3 (Pos3(..), manhattan)
 import Data.String as String
-import Util (dedup, nonEmptyLines, parseInt, tuplePermutations)
+import Day (makeDayWithCommonPart)
+import Util (dedup, nonEmptyLines, parseInt, traceRuntime, tuplePermutations)
 
 type Scanner = { id :: Int, beacons :: Array Pos3 }
 
@@ -97,23 +98,22 @@ buildNetwork start = do
   pure $ Network { scanner: start, overlaps }
 
 solve :: Array Scanner -> String |? Array (Pos3 /\ Scanner)
-solve scanners = do
+solve = traceRuntime "solve" \scanners -> do
   first <- note "need at least one scanner" $ Array.head scanners
-  let network = State.evalState (buildNetwork first) scanners
+  let network = traceRuntime "buildNetwork" (State.evalState (buildNetwork first)) scanners
   pure $ scannersInNetwork network
 
-solvePartOne :: Array Scanner -> String |? Int
 solvePartOne scanners = do
-  scanners <- solve scanners
   let beacons = scanners >>= \(pos /\ scanner) -> map (add pos) scanner.beacons
   let uniqueBeacons = dedup beacons
-  Right $ Array.length uniqueBeacons
+  Array.length uniqueBeacons
 
-solvePartTwo :: Array Scanner -> String |? Int
 solvePartTwo scanners = do
-  scanners <- map fst <$> solve scanners
-  let distances = map (uncurry manhattan) $ tuplePermutations scanners
+  let distances = map (uncurry manhattan) $ tuplePermutations $ map fst scanners
   note "need at least one sensor" $ maximum distances
 
-partOne = parse >=> solvePartOne >>> map show
-partTwo = parse >=> solvePartTwo >>> map show
+day = makeDayWithCommonPart parse solve
+  (Right <<< show <<< solvePartOne)
+  (map show <<< solvePartTwo)
+
+  

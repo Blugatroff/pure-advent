@@ -1,4 +1,4 @@
-module Year2021.Day7 (partOne, partTwo) where
+module Year2021.Day7 (day) where
 
 import MeLude
 
@@ -6,6 +6,7 @@ import Data.Array as Array
 import Data.List as List
 import Data.List.Lazy as LazyList
 import Data.String as String
+import Day (makeDay)
 import Util (parseInt)
 
 parse :: String -> String |? List Int
@@ -32,8 +33,10 @@ lastBeforeUp list = case LazyList.uncons list of
   Just { head: a, tail } -> case LazyList.uncons tail of
     Just { head: b, tail } | a >= b -> lastBeforeUp $ LazyList.cons b tail
     _ -> Just a
+
 solvePartOne = fromMaybe 0 <<< lastBeforeUp <<< costs distance
 solvePartTwo = fromMaybe 0 <<< lastBeforeUp <<< costs moveCost
 
-partOne input = parse input <#> solvePartOne >>> show
-partTwo input = parse input <#> solvePartTwo >>> show
+day = makeDay parse
+  (Right <<< show <<< solvePartOne)
+  (Right <<< show <<< solvePartTwo)

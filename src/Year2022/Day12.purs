@@ -1,4 +1,4 @@
-module Year2022.Day12 (partOne, partTwo) where
+module Year2022.Day12 (day) where
 
 import MeLude
 
@@ -6,8 +6,9 @@ import Data.Array as Array
 import Data.CodePoint.Unicode (isAsciiLower)
 import Data.Enum (fromEnum)
 import Data.Map as M
-import Data.String as String
 import Data.Pos (Pos(Pos))
+import Data.String as String
+import Day (makeDay)
 import Dijkstra (class World, Cell(..), findPath)
 import Util (indexed, lines)
 
@@ -92,9 +93,8 @@ solvePartTwo heightMap = do
   { cost } <- findPath (ReverseHeightMap heightMap) peak
   Just cost
 
-part :: (HeightMap -> Maybe Int) -> String -> Either String String
-part solve input = parse input <#> solve >>= note "No solution found :(" <#> show
+part :: (HeightMap -> Maybe Int) -> HeightMap -> Either String String
+part solve = map show <<< note "No solution found :(" <<< solve
 
-partOne = part solvePartOne
-partTwo = part solvePartTwo
+day = makeDay parse (part solvePartOne) (part solvePartTwo)
 

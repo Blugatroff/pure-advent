@@ -1,10 +1,11 @@
-module Year2022.Day13 (partOne, partTwo) where
+module Year2022.Day13 (day) where
 
 import MeLude
 
 import Data.Array as Array
 import Data.CodePoint.Unicode (isDecDigit)
 import Data.List as List
+import Day (makeDay)
 import Util (indexed, mapFst, pairs, parseInt, nonEmptyLines)
 
 data Element = Number Int | List (List Element)
@@ -65,8 +66,6 @@ solvePartTwo elements = dividers <#> (\d -> Array.findIndex (eq d) sorted)
   where
   sorted = Array.sort (elements <> dividers)
 
-partOne :: String -> Either String String
-partOne input = parse input <#> List.fromFoldable >>> solvePartOne >>> show
-
-partTwo :: String -> Either String String
-partTwo input = parse input <#> solvePartTwo >>> show
+day = makeDay parse
+  (Right <<< show <<< solvePartOne <<< List.fromFoldable)
+  (Right <<< show <<< solvePartTwo)

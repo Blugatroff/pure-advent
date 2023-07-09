@@ -1,7 +1,8 @@
-module Year2021.Day2 (partOne, partTwo) where
+module Year2021.Day2 (day) where
 
 import MeLude
 
+import Day (makeDay)
 import Parsing (Parser, runParser)
 import Parsing.Combinators (optional, choice)
 import Parsing.Combinators.Array (many)
@@ -45,8 +46,7 @@ solvePartTwo commands = x * y
 
   { x, y } = foldl fold { aim: 0, x: 0, y: 0 } commands
 
-partOne :: String -> String |? String
-partOne input = parse input <#> solvePartOne <#> show
+day = makeDay parse 
+  (Right <<< show <<< solvePartOne)
+  (Right <<< show <<< solvePartTwo)
 
-partTwo :: String -> String |? String
-partTwo input = parse input <#> solvePartTwo <#> show

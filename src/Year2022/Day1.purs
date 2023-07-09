@@ -1,8 +1,9 @@
-module Year2022.Day1 (partOne, partTwo) where
+module Year2022.Day1 (day) where
 
 import MeLude
 
 import Data.Array as Array
+import Day (makeDay)
 import Parsing (Parser, runParser)
 import Parsing.Combinators (many, optional)
 import Parsing.Combinators.Array (many1)
@@ -27,8 +28,6 @@ solvePartOne = map sum >>> maximum >>> fromMaybe (-1)
 solvePartTwo :: Array (Array Int) -> Int
 solvePartTwo = map sum >>> Array.sort >>> Array.takeEnd 3 >>> sum
 
-partOne :: String -> String |? String
-partOne input = parse input <#> solvePartOne <#> show
-
-partTwo :: String -> String |? String
-partTwo input = parse input <#> solvePartTwo <#> show
+day = makeDay parse
+  (Right <<< show <<< solvePartOne)
+  (Right <<< show <<< solvePartTwo)

@@ -1,4 +1,4 @@
-module Year2022.Day20 (partOne, partTwo) where
+module Year2022.Day20 (day) where
 
 import MeLude
 
@@ -7,6 +7,7 @@ import Data.Array as Array
 import Data.Array.ST (STArray)
 import Data.Array.ST as STArray
 import Data.Array.ST.Extra (findIndex)
+import Day (makeDay)
 import JS.BigInt (BigInt, fromInt, toInt)
 import Util (parseInt, nonEmptyLines)
 
@@ -52,9 +53,6 @@ solvePartTwo = map (mul decryptionKey) >>> \numbers -> ST.run do
     ST.foreach slots $ mix slotsST
   sum <<< groveCoords <$> (STArray.freeze slotsST)
 
-partOne :: String -> String |? String
-partOne input = parse input <#> solvePartOne <#> show
-
-partTwo :: String -> String |? String
-partTwo input = parse input <#> solvePartTwo <#> show
-
+day = makeDay parse
+  (Right <<< show <<< solvePartOne)
+  (Right <<< show <<< solvePartTwo)

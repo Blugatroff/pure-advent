@@ -1,4 +1,4 @@
-module Year2022.Day3 (partOne, partTwo) where
+module Year2022.Day3 (day) where
 
 import MeLude
 
@@ -9,6 +9,7 @@ import Data.List as List
 import Data.Set as S
 import Data.String (null, trim)
 import Data.String as String
+import Day (makeDay)
 import Util (chunks, lines, reduceR)
 
 parsePartOne :: String -> Array { before :: String, after :: String }
@@ -50,8 +51,6 @@ solvePartTwo rucksacks =
     <#> priority
     # sum
 
-partOne :: String -> String |? String
-partOne input = parsePartOne input # solvePartOne # show # Right
-
-partTwo :: String -> String |? String
-partTwo input = parsePartTwo input # solvePartTwo # show # Right
+day = makeDay Right
+  (Right <<< show <<< solvePartOne <<< parsePartOne)
+  (Right <<< show <<< solvePartTwo <<< parsePartTwo)

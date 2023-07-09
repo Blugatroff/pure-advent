@@ -5,24 +5,50 @@ import MeLude
 import Control.Monad.Error.Class (try)
 import Control.Monad.Except (ExceptT(..), runExceptT, throwError)
 import Data.Array as Array
+import Data.DateTime.Instant as Instant
 import Data.Map as Map
+import Data.Posix.Signal (Signal(..))
 import Data.Tuple (Tuple(..))
 import Day (Day(..), Index(..), PartName(..), YearName(..))
 import Dotenv as DotEnv
-import Effect.Aff (Aff, launchAff_)
+import Effect.Aff (Aff, Canceler(..), forkAff, joinFiber, launchAff_, makeAff)
 import Effect.Class (class MonadEffect)
 import Effect.Console as Console
 import Effect.Exception (message)
 import Effect.Now as Now
-import Data.DateTime.Instant as Instant
 import InputLoading (loadInput, readStdinAll)
+import Node.Buffer as Buffer
+import Node.ChildProcess (ExecOptions, ExecResult, defaultExecOptions, execFile, kill)
 import Node.Encoding (Encoding(..))
 import Node.FS.Aff (readTextFile)
-import Node.Process (exit)
-import Options.Applicative (Parser, ParserInfo, ReadM, argument, command, eitherReader, execParser, fullDesc, help, helper, info, int, long, metavar, option, progDesc, short, showDefault, str, subparser, value, (<**>))
+import Node.Process (argv, exit)
+import Options.Applicative (Parser, ParserInfo, ReadM, argument, command, eitherReader, execParser, fullDesc, help, helper, info, int, long, metavar, option, progDesc, short, str, subparser, value, (<**>))
 import Util (parseInt)
 import Year2021 as Year2021
 import Year2022 as Year2022
+
+execFileAff :: String -> Array String -> ExecOptions -> Aff ExecResult
+execFileAff executable args options = do
+  makeAff \resolve -> do
+    child <- liftEffect $ execFile executable args options \result -> do
+      resolve $ Right result
+    pure $ Canceler \_ -> liftEffect $ kill SIGINT child
+
+spawnSelf :: Array String -> Aff (String /\ String)
+spawnSelf args = do
+  argv <- liftEffect $ argv
+  result <- case Array.take 2 argv of
+    [ node, self ] -> do
+      execFileAff node (Array.cons self args) defaultExecOptions
+    _ -> liftEffect $ do
+      Console.error "Failed to spawn self"
+      exit 1
+  case result.error of
+    Nothing -> liftEffect $ do
+      stdout <- Buffer.toString UTF8 result.stdout
+      stderr <- Buffer.toString UTF8 result.stderr
+      pure $ stdout /\ stderr
+    Just error -> throwError error
 
 main :: Effect Unit
 main = launchAff_ do
@@ -42,9 +68,10 @@ start :: Arguments -> ExceptT String Aff Unit
 start (RunDay year dayIndex partName file) = do
   let days = yearDays year
   part <- case Map.lookup dayIndex days of
-    Just (Day partOne partTwo) -> pure $ case partName of
-      PartOne -> partOne
-      PartTwo -> partTwo
+    Just (Day { partOne, partTwo, partOneAndTwo }) -> pure $ case partName of
+      Nothing -> partOneAndTwo >>> map (\(one /\ two) -> one <> "\n" <> two)
+      Just PartOne -> partOne
+      Just PartTwo -> partTwo
     Nothing -> throwError $ "The day " <> show dayIndex <> " does not exist! (yet?)"
 
   input <- ExceptT $ map (lmap message) $ try case file of
@@ -52,16 +79,20 @@ start (RunDay year dayIndex partName file) = do
     Just (File inputPath) -> readTextFile UTF8 inputPath
     Just Stdin -> readStdinAll
   liftEffect $ runPart part input
-start (RunAll year) = do
+start (RunAll year) = ExceptT $ map Right $ runAllInParallel year
+
+runAllInParallel :: YearName -> Aff Unit
+runAllInParallel year = do
   let days = Array.sortBy (compare `on` fst) $ Map.toUnfoldable $ yearDays year
-  for_ days $ \(Tuple i (Day partOne partTwo)) -> do
+  fibers <- for days \(Tuple i _) -> do
+    fiber <- forkAff $ try $ spawnSelf [ "run", show year, show i ]
+    pure $ i /\ fiber
+  for_ fibers \(i /\ fiber) -> do
+    result <- joinFiber fiber
     liftEffect $ Console.log $ "Day " <> show i
-    input <- ExceptT $ map (lmap message) $ try $ loadInput year i
-    liftEffect do
-      runPart partOne input
-      runPart partTwo input
-      Console.log ""
-      pure unit
+    liftEffect $ case result of
+      Left error -> Console.error $ message error
+      Right (stdout /\ _) -> Console.log stdout
 
 runPart :: (String -> String |? String) -> String -> Effect Unit
 runPart part input = do
@@ -80,7 +111,7 @@ measureRuntime computation a = do
 
 data InputSource = File String | Stdin
 
-data Arguments = RunDay YearName (Index Day) PartName (Maybe InputSource) | RunAll YearName
+data Arguments = RunDay YearName (Index Day) (Maybe PartName) (Maybe InputSource) | RunAll YearName
 
 parser :: ParserInfo Arguments
 parser = info (commandsParser <**> helper) $ Array.fold
@@ -103,9 +134,8 @@ parser = info (commandsParser <**> helper) $ Array.fold
   runDayParser = ado
     year <- argument readYear $ metavar "year"
     day <- argument int $ metavar "day"
-    part <- option readPart $ Array.fold
-      [ value PartOne
-      , showDefault
+    part <- option (Just <$> readPart) $ Array.fold
+      [ value Nothing
       , help "Which part of the problem to solve"
       , long "part"
       , short 'p'
@@ -120,7 +150,8 @@ parser = info (commandsParser <**> helper) $ Array.fold
   readInputSource :: ReadM InputSource
   readInputSource = ado
     path <- str
-    in case path of
+    in
+      case path of
         "-" -> Stdin
         path -> File path
 

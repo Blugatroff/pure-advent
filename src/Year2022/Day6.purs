@@ -1,9 +1,10 @@
-module Year2022.Day6 (partOne, partTwo) where
+module Year2022.Day6 (day) where
 
 import MeLude
 
 import Data.List as List
 import Data.Set as S
+import Day (makeDay)
 import Util (windows)
 
 allDifferent :: forall a. Ord a => List a -> Boolean
@@ -18,8 +19,7 @@ solve l stream = stream
   # List.length
   # (add l)
 
-partOne :: String -> String |? String
-partOne input = solve 4 input # show # Right
+day = makeDay Right
+  (Right <<< show <<< solve 4)
+  (Right <<< show <<< solve 14)
 
-partTwo :: String -> String |? String
-partTwo input = solve 14 input # show # Right

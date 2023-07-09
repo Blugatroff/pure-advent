@@ -1,4 +1,4 @@
-module Year2022.Day7 (partOne, partTwo) where
+module Year2022.Day7 (day) where
 
 import MeLude
 
@@ -7,6 +7,7 @@ import Data.List (drop, filter, fromFoldable, head, reverse, sort)
 import Data.Map as M
 import Data.String (Pattern(..), trim)
 import Data.String as String
+import Day (makeDay)
 import Util (parseInt, splitStringOnce)
 
 data CdTarget = TargetUp | TargetRoot | TargetDown String
@@ -107,8 +108,7 @@ solvePartTwo lines =
   system = assembleFileSystem lines
   needed = updateSize - (diskSize - fileSystemSize system)
 
-partOne :: String -> String |? String
-partOne input = parse input <#> solvePartOne <#> show
+day = makeDay parse
+  (Right <<< show <<< solvePartOne)
+  (Right <<< show <<< solvePartTwo)
 
-partTwo :: String -> String |? String
-partTwo input = parse input <#> solvePartTwo <#> show

@@ -1,17 +1,60 @@
 module Day
-  ( Day(..)
+  ( Day(Day)
   , Part
+  , BothParts
   , PartName(..)
   , Year(..)
   , YearName(..)
   , Index(..)
+  , makeDay
+  , makeDayWithCommonPart
   ) where
 
 import MeLude
 
-type Part = String -> Either String String
+type Part = String -> String |? String
+type BothParts = String -> String |? (String /\ String)
 
-data Day = Day Part Part
+newtype Day = Day
+  { partOne :: Part
+  , partTwo :: Part
+  , partOneAndTwo :: BothParts
+  }
+
+makeDay 
+  :: forall input
+   . (String -> String |? input) 
+  -> (input -> String |? String) 
+  -> (input -> String |? String) 
+  -> Day
+makeDay parse solvePartOne solvePartTwo = Day { partOne, partTwo, partOneAndTwo }
+  where
+  partOne = parse >=> solvePartOne
+  partTwo = parse >=> solvePartTwo
+  partOneAndTwo = parse >=> \input -> do
+    a <- solvePartOne input
+    b <- solvePartTwo input
+    Right $ a /\ b
+
+makeDayWithCommonPart
+  :: forall input common
+   . (String -> String |? input)
+  -> (input -> String |? common)
+  -> (common -> String |? String)
+  -> (common -> String |? String)
+  -> Day
+makeDayWithCommonPart parse common solvePartOne solvePartTwo = Day { partOne, partTwo, partOneAndTwo }
+  where
+  partOne = parse >=> common >=> solvePartOne
+  partTwo = parse >=> \input -> do
+    common <- common input
+    solvePartTwo common
+
+  partOneAndTwo = parse >=> \input -> do
+    common <- common input
+    solution1 <- solvePartOne common
+    solution2 <- solvePartTwo common
+    Right $ solution1 /\ solution2
 
 data Year = Year String (Array Day)
 

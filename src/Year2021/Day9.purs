@@ -1,10 +1,11 @@
-module Year2021.Day9 (partOne, partTwo) where
+module Year2021.Day9 (day) where
 
 import MeLude
 
 import Data.Array as Array
 import Data.Map as M
 import Data.String as String
+import Day (makeDay)
 import Util (indexed, parseInt)
 
 type HeightMap = Array (Array Int)
@@ -52,5 +53,7 @@ solvePartTwo grid =
   f m Nothing = m
   f m (Just (x /\ y)) = M.alter (\c -> Just $ fromMaybe 0 c + 1) (x /\ y) m
 
-partOne input = parse input <#> solvePartOne >>> show
-partTwo input = parse input <#> solvePartTwo >>> show
+day = makeDay parse
+  (Right <<< show <<< solvePartOne)
+  (Right <<< show <<< solvePartTwo)
+
