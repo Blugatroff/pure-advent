@@ -1,10 +1,15 @@
 module Data.Pos (Pos(..), x, y) where
 
 import Prelude
-import Data.Primitive (class PrimitiveKey)
+
+import Data.Hashable (class Hashable)
 import Data.Int.Bits (shl, or)
+import Data.Primitive (class PrimitiveKey)
 
 data Pos = Pos Int Int
+
+instance hashablePos :: Hashable Pos where
+  hash (Pos x y) = x * 31 + y
 
 instance eqPos :: Eq Pos where
   eq (Pos x1 y1) (Pos x2 y2) = x1 == x2 && y1 == y2
