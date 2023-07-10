@@ -24,6 +24,7 @@ import Year2021.Day16 as Day16
 import Year2021.Day17 as Day17
 import Year2021.Day18 as Day18
 import Year2021.Day19 as Day19
+import Year2021.Day20 as Day20
 
 days ∷ Map.Map (Index Day) Day
 days = Map.fromFoldable $ map (lmap Index)
@@ -46,4 +47,5 @@ days = Map.fromFoldable $ map (lmap Index)
   , 17 /\ Day17.day
   , 18 /\ Day18.day
   , 19 /\ Day19.day
+  , 20 /\ Day20.day
   ]
