@@ -31,6 +31,7 @@ module MeLude
   , module Data.Semigroup
   , module Data.Traversable
   , module Data.Ordering
+  , module Data.Void
   , module Type.Prelude
 
   , module Control.Bind
@@ -82,6 +83,7 @@ import Data.Tuple (Tuple, fst, snd, uncurry, curry)
 import Data.Tuple.Nested ((/\), type (/\))
 import Data.Unfoldable (class Unfoldable)
 import Data.Unit (Unit, unit)
+import Data.Void (Void, absurd)
 import Effect (Effect)
 import Effect.Class (liftEffect)
 import Type.Prelude (Proxy(Proxy))
