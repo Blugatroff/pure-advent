@@ -29,6 +29,7 @@
   , "node-streams"
   , "nonempty"
   , "now"
+  , "open-memoize"
   , "optparse"
   , "ordered-collections"
   , "parsing"

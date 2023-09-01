@@ -6,6 +6,7 @@ import Control.Monad.Error.Class (throwError)
 import Control.Monad.Except (class MonadError, runExceptT)
 import Control.Monad.Rec.Class (forever)
 import Control.Monad.State (class MonadState, evalState, get, gets, modify)
+import Data.Function.Memoize (memoize)
 import Data.String as String
 import Day (makeDay)
 import JS.BigInt (BigInt, fromInt)
@@ -69,21 +70,23 @@ possibleDiracs = map (\(value /\ frequency) -> { value, frequency: fromInt frequ
   pure $ d1 + d2 + d3
 
 playDirac :: Int -> Player /\ Player -> (BigInt /\ BigInt)
-playDirac targetPoints = go
+playDirac targetPoints (a /\ b) = memoizedGo ((a.position /\ a.points) /\ (b.position /\ b.points))
   where
-  go (a /\ b) = addWinCounts do
+  memoizedGo = memoize $ \((aPosition /\ aPoints) /\ (bPosition /\ bPoints)) -> addWinCounts do
     d1 <- possibleDiracs
-    let newPositionA = (a.position + d1.value) `mod` 10
-    let newA = { position: newPositionA, points: a.points + newPositionA + 1 }
-    if newA.points >= targetPoints then pure (d1.frequency /\ zero)
+    let newPositionA = (aPosition + d1.value) `mod` 10
+    let newPointsA = aPoints + newPositionA + 1
+    if newPointsA >= targetPoints then pure (d1.frequency /\ zero)
     else do
+      let newA = newPositionA /\ newPointsA
       possibleDiracs <#> \d2 -> do
         let combinedFrequency = d1.frequency * d2.frequency
-        let newPositionB = (b.position + d2.value) `mod` 10
-        let newB = { position: newPositionB, points: b.points + newPositionB + 1 }
-        if newB.points >= targetPoints then zero /\ combinedFrequency
+        let newPositionB = (bPosition + d2.value) `mod` 10
+        let newPointsB = bPoints + newPositionB + 1
+        if newPointsB >= targetPoints then zero /\ combinedFrequency
         else do
-          let (winsA /\ winsB) = go (newA /\ newB)
+          let newB = newPositionB /\ newPointsB
+          let (winsA /\ winsB) = memoizedGo (newA /\ newB)
           (winsA * combinedFrequency) /\ (winsB * combinedFrequency)
 
   addWinCounts :: Array (BigInt /\ BigInt) -> (BigInt /\ BigInt)
