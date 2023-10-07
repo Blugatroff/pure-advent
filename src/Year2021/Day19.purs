@@ -11,7 +11,7 @@ import Data.String as String
 import Day (makeDayWithCommonPart)
 import Util (dedup, nonEmptyLines, parseInt, traceRuntime, tuplePermutations)
 
-type Scanner = { id :: Int, beacons :: Array Pos3 }
+type Scanner = { id :: Int, beacons :: Array (Pos3 Int) }
 
 parseScanner :: String -> String |? Scanner
 parseScanner str = do
@@ -26,7 +26,7 @@ parseScanner str = do
   beacons <- traverse parsePos tail
   Right { id, beacons }
 
-parsePos :: String -> String |? Pos3
+parsePos :: String -> String |? Pos3 Int
 parsePos str = do
   splits <- traverse parseInt $ String.split (String.Pattern ",") $ String.trim str
   case splits of
@@ -36,7 +36,7 @@ parsePos str = do
 parse :: String -> String |? Array Scanner
 parse = traverse parseScanner <<< String.split (String.Pattern "\n\n")
 
-type Orientation = Pos3 -> Pos3
+type Orientation = Pos3 Int -> Pos3 Int
 
 rotateAroundX (Pos3 x y z) = Pos3 x (-z) y
 rotateAroundY (Pos3 x y z) = Pos3 (-z) y x
@@ -52,7 +52,7 @@ allOrientations = Array.concat do
   , Array.range 0 3 <#> \n -> applyN rotateAroundY 3 >>> applyN rotateAroundX n
   ]
 
-findOverlapAtSameOrientation :: Array Pos3 -> Array Pos3 -> Maybe Pos3
+findOverlapAtSameOrientation :: Array (Pos3 Int) -> Array (Pos3 Int) -> Maybe (Pos3 Int)
 findOverlapAtSameOrientation beaconsA beaconsB =
   flip Array.findMap beaconsB \beaconB -> Array.findMap (findMatches beaconB) beaconsA
   where
@@ -62,7 +62,7 @@ findOverlapAtSameOrientation beaconsA beaconsB =
     let nMatches = countMatching (add offset >>> pred) beaconsB
     if nMatches == 12 then Just offset else Nothing
 
-findOverlap :: Array Pos3 -> Array Pos3 -> Maybe (Array Pos3 /\ Pos3)
+findOverlap :: Array (Pos3 Int) -> Array (Pos3 Int) -> Maybe (Array (Pos3 Int) /\ Pos3 Int)
 findOverlap beaconsA beaconsB = do
   flip Array.findMap allOrientations \orientation -> do
     let reorientedBeaconsB = map orientation beaconsB
@@ -73,9 +73,9 @@ countMatching :: forall a. (a -> Boolean) -> Array a -> Int
 countMatching pred = foldl (\n a -> if pred a then n + 1 else n) 0
 
 newtype Network = Network { scanner :: Scanner, overlaps :: Array Overlap }
-type Overlap = { offset :: Pos3, network :: Network }
+type Overlap = { offset :: Pos3 Int, network :: Network }
 
-scannersInNetwork :: Network -> Array (Pos3 /\ Scanner)
+scannersInNetwork :: Network -> Array (Pos3 Int /\ Scanner)
 scannersInNetwork = go zero
   where
   go pos (Network { scanner, overlaps }) =
@@ -97,7 +97,7 @@ buildNetwork start = do
           pure $ Just { offset, network: nextNetwork }
   pure $ Network { scanner: start, overlaps }
 
-solve :: Array Scanner -> String |? Array (Pos3 /\ Scanner)
+solve :: Array Scanner -> String |? Array (Pos3 Int /\ Scanner)
 solve = traceRuntime "solve" \scanners -> do
   first <- note "need at least one scanner" $ Array.head scanners
   let network = traceRuntime "buildNetwork" (State.evalState (buildNetwork first)) scanners

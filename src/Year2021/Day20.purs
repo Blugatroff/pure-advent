@@ -4,7 +4,8 @@ import MeLude
 
 import Data.Array as Array
 import Data.HashSet as Set
-import Data.Int (binary, fromStringAs)
+import Data.Int.Bits (shl, (.|.))
+import Data.List as List
 import Data.Pos (Pos(..), x, y)
 import Data.String as String
 import Data.TraversableWithIndex (forWithIndex)
@@ -49,6 +50,13 @@ imageDimensions image = (Pos minX minY) /\ (Pos maxX maxY)
   minY = minimumOrZero ys
   maxY = maximumOrZero ys
 
+readIntRadix2 :: List Boolean -> Int
+readIntRadix2 = go <<< List.reverse
+  where
+    go List.Nil = 0
+    go (false : xs) = go xs `shl` 1
+    go (true : xs) = go xs `shl` 1 .|. 1
+
 enhance :: Boolean -> Array Boolean -> HashSet Pos -> HashSet Pos
 enhance outOfBoundsState enhancement image = newImage
   where
@@ -70,22 +78,11 @@ enhance outOfBoundsState enhancement image = newImage
 
   newImage = Set.fromFoldable do
     Array.range (minX - 1) (maxX + 1) >>= \x ->
-      Array.range (minY - 1) (maxY + 1) # Array.mapMaybe \y ->
-        let
-          pos = Pos x y
-          index = neighbours pos
-            # map
-                ( \pos ->
-                    ( if outOfBounds pos then outOfBoundsState
-                      else Set.member pos image
-                    ) # if _ then '1' else '0'
-                )
-            # fromCharArray
-            # fromStringAs binary
-            # fromMaybe 0
-          value = fromMaybe false $ Array.index enhancement index
-        in
-          if value then (Just pos) else Nothing
+      Array.range (minY - 1) (maxY + 1) # Array.mapMaybe \y -> do
+        let pos = Pos x y
+        let isLit pos = if outOfBounds pos then outOfBoundsState else Set.member pos image
+        let index = readIntRadix2 $ List.fromFoldable $ map isLit $ neighbours pos
+        if fromMaybe false $ Array.index enhancement index then (Just pos) else Nothing
 
 solve n { enhancement, image } =
   Set.size
