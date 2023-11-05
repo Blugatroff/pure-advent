@@ -1,0 +1,56 @@
+package:
+  dependencies:
+    - aff
+    - arrays
+    - bifunctors
+    - console
+    - control
+    - datetime
+    - debug
+    - dotenv
+    - effect
+    - either
+    - enums
+    - exceptions
+    - fetch
+    - foldable-traversable
+    - foreign-object
+    - functions
+    - integers
+    - js-bigints
+    - lazy
+    - lists
+    - maybe
+    - newtype
+    - node-buffer
+    - node-child-process
+    - node-fs
+    - node-fs-aff
+    - node-process
+    - node-streams
+    - nonempty
+    - now
+    - open-memoize
+    - optparse
+    - ordered-collections
+    - parsing
+    - partial
+    - posix-types
+    - prelude
+    - refs
+    - st
+    - strings
+    - stringutils
+    - tailrec
+    - transformers
+    - tuples
+    - typelevel-prelude
+    - unfoldable
+    - unicode
+    - unordered-collections
+  name: aoc
+workspace:
+  extra_packages: {}
+  package_set:
+    url: https://raw.githubusercontent.com/purescript/package-sets/psc-0.15.8-20230528/packages.json
+    hash: sha256-M7HMoAd/vtT77Nhev0ImF4w8o0TzFy+hasYDl7zD8I4=

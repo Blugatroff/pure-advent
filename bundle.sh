@@ -1,6 +1,6 @@
-#!/usr/bin/sh
+#!/usr/bin/env bash 
 set -xe
 
-spago build --config ./prod.dhall 
 purs-backend-es build
-echo "import { main } from './output/Main/index.js'; main();" | esbuild --bundle --platform=node --minify > dist.js
+purs-backend-es bundle-app --main Main --minify --no-build --to dist.js --platform=node
+
