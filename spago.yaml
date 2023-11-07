@@ -6,7 +6,6 @@ package:
     - console
     - control
     - datetime
-    - debug
     - dotenv
     - effect
     - either
@@ -49,6 +48,13 @@ package:
     - unicode
     - unordered-collections
   name: aoc
+  build:
+    pedantic_packages: true
+    censor_project_warnings:
+      - MissingTypeDeclaration
+      - ShadowedName
+      - ImplicitQualifiedImport
+    strict: false
 workspace:
   extra_packages: {}
   package_set:
