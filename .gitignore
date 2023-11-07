@@ -9,7 +9,7 @@
 /.psa*
 /.spago
 /output-es/
-dist.js
+dist.mjs
 sample.txt
 .env
 inputs

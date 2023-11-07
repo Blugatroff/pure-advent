@@ -12,7 +12,6 @@ import Parsing as Parsing
 import Parsing.Combinators as Parsing
 import Parsing.String as Parsing
 import Parsing.String.Basic as Parsing
-import Util (nonEmptyLines, parseInt, splitStringOnce, trace)
 
 data Register = W | X | Y | Z
 
