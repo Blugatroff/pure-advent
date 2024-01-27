@@ -15,3 +15,6 @@ export const traceRuntimeImpl = now => consoleError => label => f => a => {
   return v;
 }
 
+export const errorCodeImpl = Nothing => Just => e =>
+  e.code === undefined ? Nothing : Just(e.code)
+

@@ -40,6 +40,7 @@ module Util
   , nonEmptyLines
   , minimumOrZero
   , maximumOrZero
+  , errorCode
   ) where
 
 import MeLude
@@ -51,12 +52,13 @@ import Data.DateTime.Instant as Instant
 import Data.Int as Int
 import Data.List as List
 import Data.Map as M
+import Data.Map.Native.ST as NativeMapST
 import Data.NonEmpty (NonEmpty(..))
 import Data.Primitive (class PrimitiveKey, primitiveKey)
 import Data.Set as S
 import Data.String as String
-import Data.Map.Native.ST as NativeMapST
 import Effect.Console as Console
+import Effect.Exception (Error)
 import Effect.Now as Now
 import Effect.Unsafe (unsafePerformEffect)
 import JS.BigInt (BigInt)
@@ -252,4 +254,9 @@ minimumOrZero = fromMaybe zero <<< minimum
 
 maximumOrZero :: forall f a. Foldable f => Ord a => Semiring a => f a -> a
 maximumOrZero = fromMaybe zero <<< maximum
+
+foreign import errorCodeImpl :: (forall a. Maybe a) -> (forall a. a -> Maybe a) -> Error -> Maybe String
+
+errorCode ∷ Error → Maybe String
+errorCode = errorCodeImpl Nothing Just
 

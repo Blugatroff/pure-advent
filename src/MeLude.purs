@@ -35,6 +35,7 @@ module MeLude
   , module Type.Prelude
 
   , module Control.Bind
+  , module Control.Apply
   , module Control.Applicative
   , module Control.Monad
   , module Control.Monad.ST
@@ -46,12 +47,13 @@ module MeLude
   , type (|?)
   ) where
 
+import Control.Apply ((*>))
 import Control.Applicative (class Applicative, pure, unless, when, apply)
 import Control.Bind (bind, (>>=), (=<<), discard, join, (<=<), (>=>))
 import Control.Monad (class Monad)
 import Control.Monad.ST (ST)
 import Control.Alt ((<|>))
-import Data.Bifunctor (lmap)
+import Data.Bifunctor (lmap, bimap)
 import Data.Boolean (otherwise)
 import Data.Either (Either(..), note, either, hush)
 import Data.Eq (class Eq, eq, (==), (/=), notEq)
