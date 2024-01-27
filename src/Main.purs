@@ -101,7 +101,9 @@ runPart quiet part input expected = do
   result /\ duration <- measureRuntime (pure <<< part) input
   case result of
     Right result -> do
-      Console.log $ result <> "\nTook " <> show duration <> "ms"
+      Console.log result
+      when (quiet == NoQuiet) do
+        Console.log $ "Took " <> show duration <> "ms"
       case expected of
         Just expected | expected /= result -> do
           when (quiet == NoQuiet) do
