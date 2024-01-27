@@ -8,6 +8,8 @@ module Day
   , Index(..)
   , makeDay
   , makeDayWithCommonPart
+  , makeDay25
+  , noPartTwoMessage
   ) where
 
 import MeLude
@@ -20,6 +22,9 @@ newtype Day = Day
   , partTwo :: Part
   , partOneAndTwo :: BothParts
   }
+
+noPartTwoMessage = "This puzzle doesn't have a second part."
+makeDay25 parse solvePartOne = makeDay parse solvePartOne (const $ Right noPartTwoMessage)
 
 makeDay 
   :: forall input

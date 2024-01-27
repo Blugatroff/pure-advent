@@ -5,7 +5,7 @@ import MeLude
 import Data.Array as Array
 import Data.List as List
 import Data.String as String
-import Day (Day, Index, YearName)
+import Day (Day, Index(..), YearName, noPartTwoMessage)
 import Effect.Aff (Aff, Canceler(..), makeAff, throwError, try)
 import Effect.Class.Console as Console
 import Effect.Exception (Error, error, message)
@@ -58,6 +58,7 @@ fetchExpectedResultUncached year day = do
         )
     # pure <<< case _ of
         [ one, two ] -> Just (one /\ two)
+        [ one ] | day == Index 25 -> Just (one /\ noPartTwoMessage)
         _ -> Nothing
 
 fetchExpectedResult :: YearName -> Index Day -> Aff (Maybe (String /\ String))

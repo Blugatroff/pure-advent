@@ -3,7 +3,7 @@ module Main (main) where
 import MeLude
 
 import Control.Monad.Error.Class (try)
-import Control.Monad.Except (ExceptT(..), runExceptT, throwError, lift)
+import Control.Monad.Except (ExceptT(..), runExceptT, throwError)
 import Data.Array as Array
 import Data.DateTime.Instant as Instant
 import Data.Map as Map
