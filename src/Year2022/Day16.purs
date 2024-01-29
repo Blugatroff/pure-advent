@@ -2,7 +2,6 @@ module Year2022.Day16 (day) where
 
 import MeLude
 
-import Control.Apply ((*>))
 import Data.Array as Array
 import Data.HashMap as M
 import Data.HashSet as S

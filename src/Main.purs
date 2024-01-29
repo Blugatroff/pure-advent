@@ -67,15 +67,20 @@ yearDays TheYear2022 = Year2022.days
 start :: Arguments -> ExceptT String Aff Unit
 start (Arguments quiet command) = case command of
   RunDay year dayIndex partName file -> do
-    let days = yearDays year
-    let mergeParts = \(one /\ two) -> one <> "\n" <> two
+    let
+      days = yearDays year
+      mergeParts = \(one /\ two) -> one <> "\n" <> two
+      pickExpectedResultPart = case partName of
+        Nothing -> mergeParts
+        Just PartOne -> fst
+        Just PartTwo -> snd
     part <- case Map.lookup dayIndex days of
       Just (Day { partOne, partTwo, partOneAndTwo }) -> pure $ case partName of
         Nothing -> partOneAndTwo >>> map mergeParts
         Just PartOne -> partOne
         Just PartTwo -> partTwo
       Nothing -> throwError $ "The day " <> show dayIndex <> " does not exist! (yet?)"
-    expected <- ExceptT $ map (bimap message (map mergeParts)) $ try $ fetchExpectedResult year dayIndex
+    expected <- ExceptT $ map (bimap message (map pickExpectedResultPart)) $ try $ fetchExpectedResult year dayIndex
     input <- ExceptT $ map (lmap message) $ try case file of
       Nothing -> loadInput year dayIndex
       Just (File inputPath) -> readTextFile UTF8 inputPath
@@ -127,6 +132,7 @@ data InputSource = File String | Stdin
 data Command = RunDay YearName (Index Day) (Maybe PartName) (Maybe InputSource) | RunAll YearName
 
 data Quiet = YesQuiet | NoQuiet
+
 derive instance Eq Quiet
 data Arguments = Arguments Quiet Command
 
@@ -136,7 +142,7 @@ parser = info (commandsParser <**> helper) $ Array.fold
   , progDesc "Advent of Code Solutions in Purescript"
   ]
   where
-  quiet = Arguments <$> flag NoQuiet YesQuiet (Array.fold [short 'q', long "quiet", help "Only output the puzzle results"])
+  quiet = Arguments <$> flag NoQuiet YesQuiet (Array.fold [ short 'q', long "quiet", help "Only output the puzzle results" ])
 
   commandsParser :: Parser Arguments
   commandsParser = subparser $ Array.fold

@@ -21,7 +21,10 @@ parse input = String.split (Pattern "\n") input
   # traverse (SC.toCharArray >>> traverse (SC.singleton >>> parseInt))
 
 pathsToBorder :: Int /\ Int -> Int /\ Int -> Array (Array (Int /\ Int))
-pathsToBorder (width /\ height) (x /\ y) = [ top, bottom, left, right ]
+pathsToBorder (width /\ height) pos@(x /\ y) =
+  Array.filter (_ /= mempty)
+    $ Array.filter (notEq pos)
+    <$> [ top, bottom, left, right ]
   where
   top = Array.range (y - 1) 0 <#> (/\) x
   bottom = Array.range (y + 1) (height - 1) <#> (/\) x
@@ -34,7 +37,7 @@ isVisible grid pos = pathsToBorder (gridSize grid) pos # any (all isLower)
   h = fromMaybe 0 $ indexGrid pos grid
 
   isLower :: Int /\ Int -> Boolean
-  isLower p = indexGrid p grid # fromMaybe 0 # (_ `lessThan` h)
+  isLower p = indexGrid p grid # maybe true (_ `lessThan` h)
 
 scenicScore :: Grid -> Int /\ Int -> Int
 scenicScore grid pos = pathsToBorder (gridSize grid) pos <#> viewDistance # product
@@ -68,4 +71,3 @@ solvePartTwo grid = gridPositions grid <#> scenicScore grid # maximum # fromMayb
 day = makeDay parse
   (Right <<< show <<< solvePartOne)
   (Right <<< show <<< solvePartTwo)
-
